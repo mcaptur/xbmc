@@ -28,7 +28,6 @@
 #include "cores/VideoPlayer/VideoRenderers/RenderManager.h"
 #include "guilib/GraphicContext.h"
 #include "settings/DisplaySettings.h"
-#include "settings/MediaSettings.h"
 #include "settings/Settings.h"
 #include "utils/AMLUtils.h"
 #include "utils/log.h"
@@ -2007,14 +2006,14 @@ std::string CAMLCodec::GetStereoMode()
 {
   std::string  stereo_mode;
 
-  switch(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_StereoMode)
+  switch(m_config.processInfo->GetVideoSettings().m_StereoMode)
   {
     case RENDER_STEREO_MODE_SPLIT_VERTICAL:   stereo_mode = "left_right"; break;
     case RENDER_STEREO_MODE_SPLIT_HORIZONTAL: stereo_mode = "top_bottom"; break;
     default:                                  stereo_mode = m_hints.stereo_mode; break;
   }
 
-  if(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_StereoInvert)
+  if(m_config.processInfo->GetVideoSettings().m_StereoInvert)
     stereo_mode = RenderManager::GetStereoModeInvert(stereo_mode);
   return stereo_mode;
 }
@@ -2027,20 +2026,20 @@ void CAMLCodec::SetVideoRect(const CRect &SrcRect, const CRect &DestRect)
   bool update = false;
 
   // video zoom adjustment.
-  float zoom = CMediaSettings::GetInstance().GetCurrentVideoSettings().m_CustomZoomAmount;
+  float zoom = m_config.processInfo->GetVideoSettings().m_CustomZoomAmount;
   if ((int)(zoom * 1000) != (int)(m_zoom * 1000))
   {
     m_zoom = zoom;
   }
   // video contrast adjustment.
-  int contrast = CMediaSettings::GetInstance().GetCurrentVideoSettings().m_Contrast;
+  int contrast = m_config.processInfo->GetVideoSettings().m_Contrast;
   if (contrast != m_contrast)
   {
     SetVideoContrast(contrast);
     m_contrast = contrast;
   }
   // video brightness adjustment.
-  int brightness = CMediaSettings::GetInstance().GetCurrentVideoSettings().m_Brightness;
+  int brightness = m_config.processInfo->GetVideoSettings().m_Brightness;
   if (brightness != m_brightness)
   {
     SetVideoBrightness(brightness);
@@ -2048,7 +2047,7 @@ void CAMLCodec::SetVideoRect(const CRect &SrcRect, const CRect &DestRect)
   }
 
   // video view mode
-  int view_mode = CMediaSettings::GetInstance().GetCurrentVideoSettings().m_ViewMode;
+  int view_mode = m_config.processInfo->GetVideoSettings().m_ViewMode;
   if (m_view_mode != view_mode)
   {
     m_view_mode = view_mode;
