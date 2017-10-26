@@ -28,7 +28,6 @@
 #include "cores/VideoPlayer/VideoRenderers/RenderManager.h"
 #include "guilib/GraphicContext.h"
 #include "settings/DisplaySettings.h"
-#include "settings/MediaSettings.h"
 #include "settings/Settings.h"
 #include "utils/AMLUtils.h"
 #include "utils/log.h"
