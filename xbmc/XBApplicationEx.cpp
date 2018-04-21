@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,22 +18,17 @@
  *
  */
 
-#include "system.h"
 #include "FileItem.h"
 #include "messaging/ApplicationMessenger.h"
 #include "PlayListPlayer.h"
 #include "XBApplicationEx.h"
 #include "utils/log.h"
 #include "threads/SystemClock.h"
-#ifdef HAS_PERFORMANCE_SAMPLE
-#include "utils/PerformanceSample.h"
-#else
-#define MEASURE_FUNCTION
-#endif
 #include "commons/Exception.h"
 #ifdef TARGET_POSIX
-#include "linux/XTimeUtils.h"
+#include "platform/linux/XTimeUtils.h"
 #endif
+#include "AppParamParser.h"
 
 // Put this here for easy enable and disable
 #ifndef _DEBUG
@@ -49,12 +44,10 @@ CXBApplicationEx::CXBApplicationEx()
   m_renderGUI = false;
 }
 
-CXBApplicationEx::~CXBApplicationEx()
-{
-}
+CXBApplicationEx::~CXBApplicationEx() = default;
 
 /* Destroy the app */
-VOID CXBApplicationEx::Destroy()
+void CXBApplicationEx::Destroy()
 {
   CLog::Log(LOGNOTICE, "destroy");
   // Perform app-specific cleanup
@@ -62,7 +55,7 @@ VOID CXBApplicationEx::Destroy()
 }
 
 /* Function that runs the application */
-INT CXBApplicationEx::Run(CFileItemList &playlist)
+int CXBApplicationEx::Run(const CAppParamParser &params)
 {
   CLog::Log(LOGNOTICE, "Running the application..." );
 
@@ -70,19 +63,16 @@ INT CXBApplicationEx::Run(CFileItemList &playlist)
   unsigned int frameTime = 0;
   const unsigned int noRenderFrameTime = 15;  // Simulates ~66fps
 
-  if (playlist.Size() > 0)
+  if (params.Playlist().Size() > 0)
   {
-    g_playlistPlayer.Add(0, playlist);
-    g_playlistPlayer.SetCurrentPlaylist(0);
+    CServiceBroker::GetPlaylistPlayer().Add(0, params.Playlist());
+    CServiceBroker::GetPlaylistPlayer().SetCurrentPlaylist(0);
     KODI::MESSAGING::CApplicationMessenger::GetInstance().PostMsg(TMSG_PLAYLISTPLAYER_PLAY, -1);
   }
 
   // Run xbmc
   while (!m_bStop)
   {
-#ifdef HAS_PERFORMANCE_SAMPLE
-    CPerformanceSample sampleLoop("XBApplicationEx-loop");
-#endif
     //-----------------------------------------
     // Animate and render a frame
     //-----------------------------------------

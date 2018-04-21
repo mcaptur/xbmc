@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,6 @@
  *
  */
 
-#include "system.h"
 #if defined(HAVE_LIBCEC)
 #include "PeripheralBusCEC.h"
 #include "peripherals/Peripherals.h"
@@ -32,7 +31,7 @@ using namespace CEC;
 class DllLibCECInterface
 {
 public:
-  virtual ~DllLibCECInterface() {}
+  virtual ~DllLibCECInterface() = default;
   virtual ICECAdapter* CECInitialise(libcec_configuration *configuration)=0;
   virtual void*        CECDestroy(ICECAdapter *adapter)=0;
 };
@@ -50,7 +49,7 @@ class PERIPHERALS::DllLibCEC : public DllDynamic, DllLibCECInterface
   END_METHOD_RESOLVE()
 };
 
-CPeripheralBusCEC::CPeripheralBusCEC(CPeripherals *manager) :
+CPeripheralBusCEC::CPeripheralBusCEC(CPeripherals& manager) :
     CPeripheralBus("PeripBusCEC", manager, PERIPHERAL_BUS_CEC),
     m_dll(new DllLibCEC),
     m_cecAdapter(NULL)
@@ -102,12 +101,6 @@ bool CPeripheralBusCEC::PerformDeviceScan(PeripheralScanResults &results)
       /** the Pi's adapter cannot be removed, no need to rescan */
       m_bNeedsPolling = false;
       break;
-#if defined(HAS_IMXVPU)
-    case ADAPTERTYPE_IMX:
-      result.m_mappedBusType = PERIPHERAL_BUS_IMX;
-      m_bNeedsPolling = false;
-      break;
-#endif
     default:
       break;
     }

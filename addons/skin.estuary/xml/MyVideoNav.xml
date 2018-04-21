@@ -67,7 +67,7 @@
 					<control type="group">
 						<left>20</left>
 						<top>245</top>
-						<visible>ListItem.IsCollection</visible>
+						<visible>ListItem.IsCollection + String.IsEmpty(ListItem.Plot)</visible>
 						<include content="InfoList">
 							<param name="bottom" value="108" />
 							<param name="width" value="540" />
@@ -138,7 +138,7 @@
 						<include>MediaMenuItemsCommon</include>
 						<label>$LOCALIZE[31056]</label>
 						<onclick>ActivateWindow(videoplaylist)</onclick>
-						<visible>IntegerGreaterThan(Playlist.Length(video),0)</visible>
+						<visible>Integer.IsGreater(Playlist.Length(video),0)</visible>
 					</control>
 					<control type="button" id="621">
 						<description>Get more</description>

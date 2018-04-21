@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,8 +19,9 @@
  *
  */
 
-#include "epg/EpgTypes.h"
 #include "guilib/GUIDialog.h"
+
+#include "pvr/PVRTypes.h"
 
 namespace PVR
 {
@@ -28,23 +29,26 @@ namespace PVR
   {
   public:
     CGUIDialogPVRGuideInfo(void);
-    virtual ~CGUIDialogPVRGuideInfo(void);
-    virtual bool OnMessage(CGUIMessage& message) override;
-    virtual bool OnInfo(int actionID) override;
-    virtual bool HasListItems() const override { return true; };
-    virtual CFileItemPtr GetCurrentListItem(int offset = 0) override;
+    ~CGUIDialogPVRGuideInfo(void) override;
+    bool OnMessage(CGUIMessage& message) override;
+    bool OnInfo(int actionID) override;
+    bool HasListItems() const override { return true; }
+    CFileItemPtr GetCurrentListItem(int offset = 0) override;
 
-    void SetProgInfo(const EPG::CEpgInfoTagPtr &tag);
+    void SetProgInfo(const CPVREpgInfoTagPtr &tag);
+
+    static void ShowFor(const CFileItemPtr& item);
 
   protected:
-    virtual void OnInitWindow() override;
+    void OnInitWindow() override;
 
+  private:
     bool OnClickButtonOK(CGUIMessage &message);
     bool OnClickButtonRecord(CGUIMessage &message);
     bool OnClickButtonPlay(CGUIMessage &message);
     bool OnClickButtonFind(CGUIMessage &message);
     bool OnClickButtonAddTimer(CGUIMessage &message);
 
-    EPG::CEpgInfoTagPtr m_progItem;
+    CPVREpgInfoTagPtr m_progItem;
   };
 }

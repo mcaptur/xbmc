@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2013-2015 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -35,21 +35,20 @@ public:
   static const CContextMenuItem MAIN;
   static const CContextMenuItem MANAGE;
 
-  CContextMenuManager(ADDON::CAddonMgr& addonMgr);
+  explicit CContextMenuManager(ADDON::CAddonMgr& addonMgr);
   ~CContextMenuManager();
   static CContextMenuManager& GetInstance();
 
   void Init();
+  void Deinit();
 
   ContextMenuView GetItems(const CFileItem& item, const CContextMenuItem& root = MAIN) const;
 
   ContextMenuView GetAddonItems(const CFileItem& item, const CContextMenuItem& root = MAIN) const;
 
-  bool Unload(const ADDON::CContextMenuAddon& addon);
-
 private:
-  CContextMenuManager(const CContextMenuManager&);
-  CContextMenuManager const& operator=(CContextMenuManager const&);
+  CContextMenuManager(const CContextMenuManager&) = delete;
+  CContextMenuManager& operator=(CContextMenuManager const&) = delete;
 
   bool IsVisible(
     const CContextMenuItem& menuItem,
@@ -74,7 +73,7 @@ namespace CONTEXTMENU
   bool ShowFor(const CFileItemPtr& fileItem, const CContextMenuItem& root=CContextMenuManager::MAIN);
 
   /*!
-   * Shortcut for continuing the context menu loop from an exisiting menu item.
+   * Shortcut for continuing the context menu loop from an existing menu item.
    */
   bool LoopFrom(const IContextMenuItem& menu, const CFileItemPtr& fileItem);
 }

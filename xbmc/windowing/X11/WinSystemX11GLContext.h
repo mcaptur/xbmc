@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2014 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,31 +20,38 @@
 
 #pragma once
 
-#if defined(HAVE_X11)
-
 #include "WinSystemX11.h"
-#include "GL/glx.h"
+
 #include "EGL/egl.h"
 #include "rendering/gl/RenderSystemGL.h"
-#include "utils/GlobalsHandling.h"
+#include "platform/linux/OptionalsReg.h"
+#include <memory>
 
 class CGLContext;
+class CVaapiProxy;
 
 class CWinSystemX11GLContext : public CWinSystemX11, public CRenderSystemGL
 {
 public:
   CWinSystemX11GLContext();
-  virtual ~CWinSystemX11GLContext();
-  bool CreateNewWindow(const std::string& name, bool fullScreen, RESOLUTION_INFO& res, PHANDLE_EVENT_FUNC userFunction) override;
+  ~CWinSystemX11GLContext() override;
+
+  // Implementation of CWinSystem via CWinSystemX11
+  CRenderSystemBase *GetRenderSystem() override { return this; }
+  bool CreateNewWindow(const std::string& name, bool fullScreen, RESOLUTION_INFO& res) override;
   bool ResizeWindow(int newWidth, int newHeight, int newLeft, int newTop) override;
+  void FinishWindowResize(int newWidth, int newHeight) override;
   bool SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool blankOtherDisplays) override;
   bool DestroyWindowSystem() override;
   bool DestroyWindow() override;
 
-  bool IsExtSupported(const char* extension) override;
+  bool IsExtSupported(const char* extension) const override;
 
-  GLXWindow GetWindow() const;
-  GLXContext GetGlxContext() const;
+  // videosync
+  std::unique_ptr<CVideoSync> GetVideoSync(void *clock) override;
+
+  XID GetWindow() const;
+  void* GetGlxContext() const;
   EGLDisplay GetEGLDisplay() const;
   EGLSurface GetEGLSurface() const;
   EGLContext GetEGLContext() const;
@@ -59,9 +66,12 @@ protected:
 
   CGLContext *m_pGLContext = nullptr;
   bool m_newGlContext;
+
+  struct delete_CVaapiProxy
+  {
+    void operator()(CVaapiProxy *p) const;
+  };
+  std::unique_ptr<CVaapiProxy, delete_CVaapiProxy> m_vaapiProxy;
+
+  std::unique_ptr<OPTIONALS::CLircContainer, OPTIONALS::delete_CLircContainer> m_lirc;
 };
-
-XBMC_GLOBAL_REF(CWinSystemX11GLContext,g_Windowing);
-#define g_Windowing XBMC_GLOBAL_USE(CWinSystemX11GLContext)
-
-#endif //HAVE_X11

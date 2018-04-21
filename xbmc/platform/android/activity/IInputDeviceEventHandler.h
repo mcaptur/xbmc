@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2016 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -24,10 +24,10 @@ struct AInputEvent;
 class IInputDeviceEventHandler
 {
 public:
-  virtual ~IInputDeviceEventHandler() { }
+  virtual ~IInputDeviceEventHandler() = default;
 
   virtual bool OnInputDeviceEvent(const AInputEvent* event) = 0;
 
 protected:
-  IInputDeviceEventHandler() { }
+  IInputDeviceEventHandler() = default;
 };

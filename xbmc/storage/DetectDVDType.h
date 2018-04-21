@@ -25,7 +25,7 @@
 //
 // by Bobbin007 in 2003
 
-#include "system.h"
+#include "PlatformDefs.h"
 
 #ifdef HAS_DVD_DRIVE
 
@@ -44,11 +44,11 @@ class CDetectDVDMedia : public CThread
 {
 public:
   CDetectDVDMedia();
-  virtual ~CDetectDVDMedia();
+  ~CDetectDVDMedia() override;
 
-  virtual void OnStartup();
-  virtual void OnExit();
-  virtual void Process();
+  void OnStartup() override;
+  void OnExit() override;
+  void Process() override;
 
   static void WaitMediaReady();
   static bool IsDiscInDrive();

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@
 #include "settings/Settings.h"
 #include "threads/SingleLock.h"
 #include "URL.h"
+#include "utils/FileExtensionProvider.h"
 #include "utils/HTMLUtil.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
@@ -71,13 +72,9 @@ namespace {
 std::map<std::string,CDateTime> CRSSDirectory::m_cache;
 CCriticalSection CRSSDirectory::m_section;
 
-CRSSDirectory::CRSSDirectory()
-{
-}
+CRSSDirectory::CRSSDirectory() = default;
 
-CRSSDirectory::~CRSSDirectory()
-{
-}
+CRSSDirectory::~CRSSDirectory() = default;
 
 bool CRSSDirectory::ContainsFiles(const CURL& url)
 {
@@ -91,9 +88,9 @@ bool CRSSDirectory::ContainsFiles(const CURL& url)
 static bool IsPathToMedia(const std::string& strPath )
 {
   return URIUtils::HasExtension(strPath,
-                              g_advancedSettings.m_videoExtensions + '|' +
-                              g_advancedSettings.GetMusicExtensions() + '|' +
-                              g_advancedSettings.m_pictureExtensions);
+                                CServiceBroker::GetFileExtensionProvider().GetVideoExtensions() + '|' +
+                                CServiceBroker::GetFileExtensionProvider().GetMusicExtensions() + '|' +
+                                CServiceBroker::GetFileExtensionProvider().GetPictureExtensions());
 }
 
 static bool IsPathToThumbnail(const std::string& strPath )
@@ -101,7 +98,7 @@ static bool IsPathToThumbnail(const std::string& strPath )
   // Currently just check if this is an image, maybe we will add some
   // other checks later
   return URIUtils::HasExtension(strPath,
-                                    g_advancedSettings.m_pictureExtensions);
+                                CServiceBroker::GetFileExtensionProvider().GetPictureExtensions());
 }
 
 static time_t ParseDate(const std::string & strDate)
@@ -199,7 +196,7 @@ static void ParseItemMRSS(CFileItem* item, SResources& resources, TiXmlElement* 
     else if(scheme == "urn:boxee:show-title")
       vtag->m_strShowTitle = text.c_str();
     else if(scheme == "urn:boxee:view-count")
-      vtag->m_playCount = atoi(text.c_str());
+      vtag->SetPlayCount(atoi(text.c_str()));
     else if(scheme == "urn:boxee:source")
       item->SetProperty("boxee:provider_source", text);
     else
@@ -255,7 +252,7 @@ static void ParseItemItunes(CFileItem* item, SResources& resources, TiXmlElement
   else if(name == "author")
     vtag->m_writingCredits.push_back(text);
   else if(name == "duration")
-    vtag->m_duration = StringUtils::TimeStringToSeconds(text);
+    vtag->SetDuration(StringUtils::TimeStringToSeconds(text));
   else if(name == "keywords")
     item->SetProperty("keywords", text);
 }
@@ -354,13 +351,13 @@ static void ParseItemBoxee(CFileItem* item, SResources& resources, TiXmlElement*
   else if(name == "content_type")
     item->SetMimeType(text);
   else if(name == "runtime")
-    vtag->m_duration = StringUtils::TimeStringToSeconds(text);
+    vtag->SetDuration(StringUtils::TimeStringToSeconds(text));
   else if(name == "episode")
     vtag->m_iEpisode = atoi(text.c_str());
   else if(name == "season")
     vtag->m_iSeason = atoi(text.c_str());
   else if(name == "view-count")
-    vtag->m_playCount = atoi(text.c_str());
+    vtag->SetPlayCount(atoi(text.c_str()));
   else if(name == "tv-show-title")
     vtag->m_strShowTitle = text;
   else if(name == "release-date")
@@ -376,15 +373,15 @@ static void ParseItemZink(CFileItem* item, SResources& resources, TiXmlElement* 
   else if(name == "season")
     vtag->m_iSeason = atoi(text.c_str());
   else if(name == "views")
-    vtag->m_playCount = atoi(text.c_str());
+    vtag->SetPlayCount(atoi(text.c_str()));
   else if(name == "airdate")
     vtag->m_firstAired.SetFromDateString(text);
   else if(name == "userrating")
     vtag->SetRating((float)atof(text.c_str()));
   else if(name == "duration")
-    vtag->m_duration = atoi(text.c_str());
+    vtag->SetDuration(atoi(text.c_str()));
   else if(name == "durationstr")
-    vtag->m_duration = StringUtils::TimeStringToSeconds(text);
+    vtag->SetDuration(StringUtils::TimeStringToSeconds(text));
 }
 
 static void ParseItemSVT(CFileItem* item, SResources& resources, TiXmlElement* element, const std::string& name, const std::string& xmlns, const std::string& path)
@@ -525,7 +522,11 @@ static void ParseItem(CFileItem* item, TiXmlElement* root, const std::string& pa
     if(best->mime == "application/rss+xml" && StringUtils::StartsWithNoCase(item->GetPath(), "http://"))
       item->SetPath("rss://" + item->GetPath().substr(7));
 
-    if(StringUtils::StartsWithNoCase(item->GetPath(), "rss://"))
+    if(best->mime == "application/rss+xml" && StringUtils::StartsWithNoCase(item->GetPath(), "https://"))
+      item->SetPath("rsss://" + item->GetPath().substr(8));
+
+    if(StringUtils::StartsWithNoCase(item->GetPath(), "rss://")
+      || StringUtils::StartsWithNoCase(item->GetPath(), "rsss://"))
       item->m_bIsFolder = true;
     else
       item->m_bIsFolder = false;
@@ -539,7 +540,7 @@ static void ParseItem(CFileItem* item, TiXmlElement* root, const std::string& pa
     CVideoInfoTag* vtag = item->GetVideoInfoTag();
 
     if(item->HasProperty("duration")    && !vtag->GetDuration())
-      vtag->m_duration = StringUtils::TimeStringToSeconds(item->GetProperty("duration").asString());
+      vtag->SetDuration(StringUtils::TimeStringToSeconds(item->GetProperty("duration").asString()));
 
     if(item->HasProperty("description") && vtag->m_strPlot.empty())
       vtag->m_strPlot = item->GetProperty("description").asString();

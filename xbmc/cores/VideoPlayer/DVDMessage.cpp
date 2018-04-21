@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -95,7 +95,7 @@ void CDVDMsgGeneralSynchronize::Wait(std::atomic<bool>& abort, unsigned int sour
 long CDVDMsgGeneralSynchronize::Release()
 {
   CSingleLock lock(m_p->section);
-  long count = AtomicDecrement(&m_refs);
+  long count = --m_refs;
   m_p->condition.notifyAll();
   lock.Leave();
   if (count == 0)

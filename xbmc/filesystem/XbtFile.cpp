@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2015 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,9 +21,11 @@
 #include <algorithm>
 #include <string.h>
 
-#ifdef TARGET_WINDOWS
+#ifdef TARGET_WINDOWS_DESKTOP
 #ifdef NDEBUG
 #pragma comment(lib,"lzo2.lib")
+#elif defined _WIN64
+#pragma comment(lib, "lzo2d.lib")
 #else
 #pragma comment(lib, "lzo2-no_idb.lib")
 #endif
@@ -97,7 +99,7 @@ bool CXbtFile::Open(const CURL& url)
 void CXbtFile::Close()
 {
   for (const auto& unpackedFrame : m_unpackedFrames)
-    delete unpackedFrame;
+    delete [] unpackedFrame;
   m_unpackedFrames.clear();
 
   m_frameIndex = 0;

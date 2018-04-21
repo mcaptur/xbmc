@@ -32,13 +32,14 @@ public:
   CWinSystemMirGLESContext() = default;
   virtual ~CWinSystemMirGLESContext() = default;
 
+  // Implementation of CWinSystemBase via CWinSystemMir
+  CRenderSystemBase *GetRenderSystem() override { return this; }
   bool CreateNewWindow(const std::string& name,
                        bool fullScreen,
-                       RESOLUTION_INFO& res,
-                       PHANDLE_EVENT_FUNC userFunction) override;
+                       RESOLUTION_INFO& res) override;
 
   bool SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool blankOtherDisplays) override;
-  bool IsExtSupported(const char* extension) override;
+  bool IsExtSupported(const char* extension) const override;
   EGLDisplay GetEGLDisplay() const;
   EGLSurface GetEGLSurface() const;
   EGLContext GetEGLContext() const;

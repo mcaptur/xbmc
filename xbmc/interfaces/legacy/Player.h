@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -77,7 +77,7 @@ namespace XBMCAddon
 
       void playStream(const String& item = emptyString, const XBMCAddon::xbmcgui::ListItem* listitem = NULL, bool windowed = false);
       void playPlaylist(const PlayList* playlist = NULL,
-                        bool windowed = false, int startpos=-1);
+      bool windowed = false, int startpos=-1);
       void playCurrent(bool windowed = false);
 
     public:
@@ -89,8 +89,8 @@ namespace XBMCAddon
       // Construct a Player proxying the given generated binding. The 
       //  construction of a Player needs to identify whether or not any 
       //  callbacks will be executed asynchronously or not.
-      Player(int playerCore = 0);
-      virtual ~Player(void);
+      explicit Player(int playerCore = 0);
+      ~Player(void) override;
 #endif
 
 #ifdef DOXYGEN_SHOULD_USE_THIS
@@ -218,11 +218,41 @@ namespace XBMCAddon
       ///-----------------------------------------------------------------------
       /// onPlayBackStarted method.
       ///
-      /// Will be called when Kodi starts playing a file.
+      /// Will be called when Kodi starts playing a file. Video or audio might not be available at this point.
       ///
       onPlayBackStarted();
 #else
       virtual void onPlayBackStarted();
+#endif
+
+
+#ifdef DOXYGEN_SHOULD_USE_THIS
+      ///
+      /// \ingroup python_PlayerCB
+      /// @brief \python_func{ onAVStarted() }
+      ///-----------------------------------------------------------------------
+      /// onAVStarted method.
+      ///
+      /// Will be called when Kodi has a video- or audiostream.
+      ///
+      onAVStarted();
+#else
+      virtual void onAVStarted();
+#endif
+
+
+#ifdef DOXYGEN_SHOULD_USE_THIS
+      ///
+      /// \ingroup python_PlayerCB
+      /// @brief \python_func{ onAVChange() }
+      ///-----------------------------------------------------------------------
+      /// onAVChange method.
+      ///
+      /// Will be called when Kodi has a video- or audiostream. Also happens when the stream changes.
+      ///
+      onAVChange();
+#else
+      virtual void onAVChange();
 #endif
 
 #ifdef DOXYGEN_SHOULD_USE_THIS
@@ -251,6 +281,20 @@ namespace XBMCAddon
       onPlayBackStopped();
 #else
       virtual void onPlayBackStopped();
+#endif
+
+#ifdef DOXYGEN_SHOULD_USE_THIS
+      ///
+      /// \ingroup python_PlayerCB
+      /// @brief \python_func{ onPlayBackError() }
+      ///-----------------------------------------------------------------------
+      /// onPlayBackError method.
+      ///
+      /// Will be called when playback stops due to an error.
+      ///
+      onPlayBackError();
+#else
+      virtual void onPlayBackError();
 #endif
 
 #ifdef DOXYGEN_SHOULD_USE_THIS
@@ -560,6 +604,38 @@ namespace XBMCAddon
       void setSubtitleStream(int iStream);
 #endif
 
+      // Player_UpdateInfoTag
+#ifdef DOXYGEN_SHOULD_USE_THIS
+      ///
+      /// \ingroup python_Player
+      /// @brief \python_func{ updateInfoTag(item) }
+      ///-----------------------------------------------------------------------
+      /// Update info labels for currently playing item.
+      ///
+      /// @param item ListItem with new info
+      ///
+      /// @throws Exception          If player is not playing a file
+      ///
+      ///-----------------------------------------------------------------------
+      /// @python_v18 New function added.
+      ///-----------------------------------------------------------------------
+      ///
+      /// **Example:**
+      /// ~~~~~~~~~~~~~{.py}
+      /// ...
+      /// item = xbmcgui.ListItem()
+      /// item.setPath(xbmc.Player().getPlayingFile())
+      /// item.setInfo('music', {'title' : 'foo', 'artist' : 'bar'})
+      /// xbmc.Player().updateInfoTag(item)
+      /// ...
+      /// ~~~~~~~~~~~~~
+      ///
+      updateInfoTag();
+#else
+      void updateInfoTag(const XBMCAddon::xbmcgui::ListItem* item);
+#endif
+
+
 #ifdef DOXYGEN_SHOULD_USE_THIS
       ///
       /// \ingroup python_Player
@@ -613,7 +689,7 @@ namespace XBMCAddon
       ///
       getRadioRDSInfoTag();
 #else
-      InfoTagRadioRDS* getRadioRDSInfoTag() throw (PlayerException);
+      InfoTagRadioRDS* getRadioRDSInfoTag();
 #endif
 
 #ifdef DOXYGEN_SHOULD_USE_THIS
@@ -711,15 +787,18 @@ namespace XBMCAddon
 #endif
 
 #if !defined SWIG && !defined DOXYGEN_SHOULD_SKIP_THIS
-      SWIGHIDDENVIRTUAL void OnPlayBackStarted();
-      SWIGHIDDENVIRTUAL void OnPlayBackEnded();
-      SWIGHIDDENVIRTUAL void OnPlayBackStopped();
-      SWIGHIDDENVIRTUAL void OnPlayBackPaused();
-      SWIGHIDDENVIRTUAL void OnPlayBackResumed();
-      SWIGHIDDENVIRTUAL void OnQueueNextItem();
-      SWIGHIDDENVIRTUAL void    OnPlayBackSpeedChanged(int iSpeed);
-      SWIGHIDDENVIRTUAL void    OnPlayBackSeek(int iTime, int seekOffset);
-      SWIGHIDDENVIRTUAL void    OnPlayBackSeekChapter(int iChapter);
+      SWIGHIDDENVIRTUAL void OnPlayBackStarted(const CFileItem &file) override;
+      SWIGHIDDENVIRTUAL void OnAVStarted(const CFileItem &file) override;
+      SWIGHIDDENVIRTUAL void OnAVChange() override;
+      SWIGHIDDENVIRTUAL void OnPlayBackEnded() override;
+      SWIGHIDDENVIRTUAL void OnPlayBackStopped() override;
+      SWIGHIDDENVIRTUAL void OnPlayBackError() override;
+      SWIGHIDDENVIRTUAL void OnPlayBackPaused() override;
+      SWIGHIDDENVIRTUAL void OnPlayBackResumed() override;
+      SWIGHIDDENVIRTUAL void OnQueueNextItem() override;
+      SWIGHIDDENVIRTUAL void OnPlayBackSpeedChanged(int iSpeed) override;
+      SWIGHIDDENVIRTUAL void OnPlayBackSeek(int64_t iTime, int64_t seekOffset) override;
+      SWIGHIDDENVIRTUAL void OnPlayBackSeekChapter(int iChapter) override;
 #endif
 
     protected:

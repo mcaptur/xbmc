@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,8 +18,6 @@
  *
  */
 
-#include "system.h"
-
 #include <algorithm>
 
 #include "Picture.h"
@@ -33,7 +31,7 @@
 #include "guilib/Texture.h"
 #include "guilib/imagefactory.h"
 #include "cores/FFmpeg.h"
-#if defined(HAS_OMXPLAYER)
+#if defined(TARGET_RASPBERRY_PI)
 #include "cores/omxplayer/OMXImage.h"
 #endif
 
@@ -50,7 +48,7 @@ bool CPicture::GetThumbnailFromSurface(const unsigned char* buffer, int width, i
 
   // get an image handler
   IImage* image = ImageFactory::CreateLoader(thumbFile);
-  if (image == NULL || !image->CreateThumbnailFromSurface((BYTE *)buffer, width, height, XB_FMT_A8R8G8B8, stride, thumbFile.c_str(), thumb, thumbsize))
+  if (image == NULL || !image->CreateThumbnailFromSurface(const_cast<unsigned char*>(buffer), width, height, XB_FMT_A8R8G8B8, stride, thumbFile.c_str(), thumb, thumbsize))
   {
     delete image;
     return false;
@@ -73,8 +71,8 @@ bool CPicture::CreateThumbnailFromSurface(const unsigned char *buffer, int width
   CLog::Log(LOGDEBUG, "cached image '%s' size %dx%d", CURL::GetRedacted(thumbFile).c_str(), width, height);
   if (URIUtils::HasExtension(thumbFile, ".jpg"))
   {
-#if defined(HAS_OMXPLAYER)
-    if (COMXImage::CreateThumbnailFromSurface((BYTE *)buffer, width, height, XB_FMT_A8R8G8B8, stride, thumbFile.c_str()))
+#if defined(TARGET_RASPBERRY_PI)
+    if (COMXImage::CreateThumbnailFromSurface(const_cast<unsigned char*>(buffer), width, height, XB_FMT_A8R8G8B8, stride, thumbFile.c_str()))
       return true;
 #endif
   }
@@ -82,7 +80,7 @@ bool CPicture::CreateThumbnailFromSurface(const unsigned char *buffer, int width
   unsigned char *thumb = NULL;
   unsigned int thumbsize=0;
   IImage* pImage = ImageFactory::CreateLoader(thumbFile);
-  if(pImage == NULL || !pImage->CreateThumbnailFromSurface((BYTE *)buffer, width, height, XB_FMT_A8R8G8B8, stride, thumbFile.c_str(), thumb, thumbsize))
+  if(pImage == NULL || !pImage->CreateThumbnailFromSurface(const_cast<unsigned char*>(buffer), width, height, XB_FMT_A8R8G8B8, stride, thumbFile.c_str(), thumb, thumbsize))
   {
     CLog::Log(LOGERROR, "Failed to CreateThumbnailFromSurface for %s", CURL::GetRedacted(thumbFile).c_str());
     delete pImage;
@@ -282,6 +280,8 @@ bool CPicture::CreateTiledThumb(const std::vector<std::string> &files, const std
 
   // create a buffer for the resulting thumb
   uint32_t *buffer = (uint32_t *)calloc(g_advancedSettings.m_imageRes * g_advancedSettings.m_imageRes, 4);
+  if (!buffer)
+    return false;
   for (unsigned int i = 0; i < files.size(); ++i)
   {
     int x = i % num_across;
@@ -300,7 +300,7 @@ bool CPicture::CreateTiledThumb(const std::vector<std::string> &files, const std
       {
         if (!texture->GetOrientation() || OrientateImage(scaled, width, height, texture->GetOrientation()))
         {
-          success = true; // Flag that we at least had one succesfull image processed
+          success = true; // Flag that we at least had one successful image processed
           // drop into the texture
           unsigned int posX = x*tile_width + (tile_width - width)/2;
           unsigned int posY = y*tile_height + (tile_height - height)/2;

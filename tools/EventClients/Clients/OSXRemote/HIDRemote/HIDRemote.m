@@ -696,7 +696,7 @@ static HIDRemote *sHIDRemote = nil;
 }
 
 
-#pragma mark - PRIVATE: Distributed notifiations handling
+#pragma mark - PRIVATE: Distributed notifications handling
 - (void)_postStatusWithAction:(NSString *)action
 {
 	if (_sendStatusNotifications)
@@ -1016,6 +1016,14 @@ static HIDRemote *sHIDRemote = nil;
 
 				case kHIDUsage_Csmr_Menu:
 					buttonCode = kHIDRemoteButtonCodeMenuHold;
+				break;
+
+				case kHIDUsage_Csmr_VolumeIncrement:
+					buttonCode = kHIDRemoteButtonCodeUp;
+				break;
+
+				case kHIDUsage_Csmr_VolumeDecrement:
+					buttonCode = kHIDRemoteButtonCodeDown;
 				break;
 			}
 		break;
@@ -1458,7 +1466,7 @@ static HIDRemote *sHIDRemote = nil;
 							if ([HIDRemote OSXVersion] >= 0x1062)
 							{
 								// Support for the Aluminum Remote was added only with OS 10.6.2. Previous versions can not distinguish
-								// between the Center and the new, seperate Play/Pause button. They'll recognize both as presses of the
+								// between the Center and the new, separate Play/Pause button. They'll recognize both as presses of the
 								// "Center" button.
 								//
 								// You CAN, however, receive Aluminum Remote button presses even under OS 10.5 when using Remote Buddy's
@@ -1703,7 +1711,7 @@ static HIDRemote *sHIDRemote = nil;
 	switch (buttonCode)
 	{
 		case kHIDRemoteButtonCodeIDChanged:
-			// Do nothing, this is handled seperately
+			// Do nothing, this is handled separately
 		break;
 
 		case kHIDRemoteButtonCodeUp:

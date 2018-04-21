@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2005-2015 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@ public:
   InputStreamMultiStreams(DVDStreamType type, const CFileItem& fileitem)
     : CDVDInputStream(type, fileitem) {}
 
-  virtual ~InputStreamMultiStreams() {};
+  ~InputStreamMultiStreams() override = default;
 
 protected:
   std::vector<InputStreamPtr> m_InputStreams;    // input streams for current playing file

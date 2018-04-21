@@ -11,7 +11,6 @@
 			<visible>!Window.IsVisible(numericinput)</visible>
 			<include>Animation_DialogPopupVisible</include>
 			<control type="image">
-				<description>background image</description>
 				<left>0</left>
 				<bottom>0</bottom>
 				<width>100%</width>
@@ -19,7 +18,6 @@
 				<texture flipy="true">frame/osdfade.png</texture>
 			</control>
 			<control type="image">
-				<description>background image</description>
 				<left>0</left>
 				<bottom>0</bottom>
 				<width>100%</width>
@@ -38,7 +36,6 @@
 				<shadowcolor>black</shadowcolor>
 			</control>
 			<control type="image">
-				<description>background image</description>
 				<centerleft>50%</centerleft>
 				<top>184</top>
 				<width>1542</width>
@@ -46,7 +43,6 @@
 				<texture colordiffuse="dialog_tint">colors/white.png</texture>
 			</control>
 			<control type="image">
-				<description>background image</description>
 				<centerleft>50%</centerleft>
 				<top>184</top>
 				<width>1542</width>
@@ -54,7 +50,6 @@
 				<texture border="40">buttons/button-alt-nofo.png</texture>
 			</control>
 			<control type="edit" id="312">
-				<description>Edit Text</description>
 				<centerleft>50%</centerleft>
 				<top>183</top>
 				<width>1510</width>
@@ -242,6 +237,12 @@
 						<ondown>151</ondown>
 						<include>KeyboardButton</include>
 					</control>
+					<control type="button" id="132">
+						<description>(1,12) key button</description>
+						<onup>112</onup>
+						<ondown>152</ondown>
+						<include>KeyboardButton</include>
+					</control>
 				</control>
 				<!-- 3rd row -->
 				<control type="grouplist">
@@ -322,6 +323,12 @@
 						<ondown>171</ondown>
 						<include>KeyboardButton</include>
 					</control>
+					<control type="button" id="152">
+						<description>(2,12) key button</description>
+						<onup>132</onup>
+						<ondown>172</ondown>
+						<include>KeyboardButton</include>
+					</control>
 				</control>
 				<!-- 4th row -->
 				<control type="grouplist">
@@ -399,6 +406,12 @@
 					<control type="button" id="171">
 						<description>(3,11) key button</description>
 						<onup>501</onup>
+						<ondown>8</ondown>
+						<include>KeyboardButton</include>
+					</control>
+					<control type="button" id="172">
+						<description>(3,12) key button</description>
+						<onup>502</onup>
 						<ondown>8</ondown>
 						<include>KeyboardButton</include>
 					</control>
@@ -528,9 +541,10 @@
 			<control type="grouplist" id="95200">
 				<bottom>0</bottom>
 				<height>460</height>
-				<centerleft>86%</centerleft>
+				<centerleft>88%</centerleft>
 				<itemgap>dialogbuttons_itemgap</itemgap>
-				<onup>95200</onup>
+				<onup condition="!Integer.IsGreater(Container(9010).NumItems,0)">95200</onup>
+				<onup condition="Integer.IsGreater(Container(9010).NumItems,0)">9010</onup>
 				<ondown>95200</ondown>
 				<onleft>78500</onleft>
 				<onright>140</onright>
@@ -548,7 +562,6 @@
 				</include>
 				<include content="DefaultDialogButton">
 					<param name="id" value="309" />
-					<param name="label" value="Layout" />
 					<param name="width" value="350" />
 				</include>
 				<include content="DefaultDialogButton">
@@ -623,7 +636,6 @@
 				<top>690</top>
 				<width>1480</width>
 				<height>90</height>
-				<label>$INFO[ListItem.Label]</label>
 				<font>font37</font>
 				<shadowcolor>text_shadow</shadowcolor>
 				<aligny>center</aligny>
@@ -649,7 +661,6 @@
 					<top>770</top>
 					<width>1480</width>
 					<height>90</height>
-					<label>$INFO[ListItem.Label]</label>
 					<font>font37</font>
 					<shadowcolor>text_shadow</shadowcolor>
 					<aligny>center</aligny>

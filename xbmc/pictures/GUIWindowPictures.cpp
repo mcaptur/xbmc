@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
  */
 
 #include "threads/SystemClock.h"
-#include "system.h"
 #include "GUIWindowPictures.h"
 #include "ServiceBroker.h"
 #include "URL.h"
@@ -32,10 +31,11 @@
 #include "dialogs/GUIDialogProgress.h"
 #include "playlists/PlayListFactory.h"
 #include "PictureInfoLoader.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "input/Key.h"
-#include "dialogs/GUIDialogOK.h"
 #include "view/GUIViewState.h"
+#include "messaging/helpers/DialogOKHelper.h"
 #include "PlayListPlayer.h"
 #include "playlists/PlayList.h"
 #include "settings/MediaSourceSettings.h"
@@ -50,7 +50,7 @@
 #include "GUIWindowSlideShow.h"
 
 #ifdef TARGET_POSIX
-#include "linux/XTimeUtils.h"
+#include "platform/linux/XTimeUtils.h"
 #endif
 
 #define CONTROL_BTNVIEWASICONS      2
@@ -60,6 +60,7 @@
 
 using namespace XFILE;
 using namespace PLAYLIST;
+using namespace KODI::MESSAGING;
 
 #define CONTROL_BTNSLIDESHOW   6
 #define CONTROL_BTNSLIDESHOW_RECURSIVE   7
@@ -78,7 +79,7 @@ void CGUIWindowPictures::OnInitWindow()
   CGUIMediaWindow::OnInitWindow();
   if (m_slideShowStarted)
   {
-    CGUIWindowSlideShow* wndw = (CGUIWindowSlideShow*)g_windowManager.GetWindow(WINDOW_SLIDESHOW);
+    CGUIWindowSlideShow* wndw = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIWindowSlideShow>(WINDOW_SLIDESHOW);
     std::string path;
     if (wndw && wndw->GetCurrentSlide())
       path = URIUtils::GetDirectory(wndw->GetCurrentSlide()->GetPath());
@@ -92,9 +93,7 @@ void CGUIWindowPictures::OnInitWindow()
   }
 }
 
-CGUIWindowPictures::~CGUIWindowPictures(void)
-{
-}
+CGUIWindowPictures::~CGUIWindowPictures(void) = default;
 
 bool CGUIWindowPictures::OnMessage(CGUIMessage& message)
 {
@@ -114,7 +113,7 @@ bool CGUIWindowPictures::OnMessage(CGUIMessage& message)
       if (m_vecItems->GetPath() == "?" && message.GetStringParam().empty())
         message.SetStringParam(CMediaSourceSettings::GetInstance().GetDefaultSource("pictures"));
 
-      m_dlgProgress = (CGUIDialogProgress*)g_windowManager.GetWindow(WINDOW_DIALOG_PROGRESS);
+      m_dlgProgress = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogProgress>(WINDOW_DIALOG_PROGRESS);
     }
     break;
 
@@ -204,7 +203,7 @@ void CGUIWindowPictures::OnPrepareFileItems(CFileItemList& items)
     if (StringUtils::EqualsNoCase(items[i]->GetLabel(), "folder.jpg"))
       items.Remove(i);
 
-  if (items.GetFolderCount() == items.Size())
+  if (items.GetFolderCount() == items.Size() || !CServiceBroker::GetSettings().GetBool(CSettings::SETTING_PICTURES_USETAGS))
     return;
 
   // Start the music info loader thread
@@ -212,7 +211,7 @@ void CGUIWindowPictures::OnPrepareFileItems(CFileItemList& items)
   loader.SetProgressCallback(m_dlgProgress);
   loader.Load(items);
 
-  bool bShowProgress=!g_windowManager.HasModalDialog();
+  bool bShowProgress=!CServiceBroker::GetGUI()->GetWindowManager().HasModalDialog();
   bool bProgressVisible=false;
 
   unsigned int tick=XbmcThreads::SystemClockMillis();
@@ -325,10 +324,10 @@ bool CGUIWindowPictures::ShowPicture(int iItem, bool startSlideShow)
   if (pItem->m_bIsShareOrDrive)
     return false;
 
-  CGUIWindowSlideShow *pSlideShow = (CGUIWindowSlideShow *)g_windowManager.GetWindow(WINDOW_SLIDESHOW);
+  CGUIWindowSlideShow *pSlideShow = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIWindowSlideShow>(WINDOW_SLIDESHOW);
   if (!pSlideShow)
     return false;
-  if (g_application.m_pPlayer->IsPlayingVideo())
+  if (g_application.GetAppPlayer().IsPlayingVideo())
     g_application.StopPlaying();
 
   pSlideShow->Reset();
@@ -360,18 +359,18 @@ bool CGUIWindowPictures::ShowPicture(int iItem, bool startSlideShow)
   }
 
   m_slideShowStarted = true;
-  g_windowManager.ActivateWindow(WINDOW_SLIDESHOW);
+  CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(WINDOW_SLIDESHOW);
 
   return true;
 }
 
 void CGUIWindowPictures::OnShowPictureRecursive(const std::string& strPath)
 {
-  CGUIWindowSlideShow *pSlideShow = (CGUIWindowSlideShow *)g_windowManager.GetWindow(WINDOW_SLIDESHOW);
+  CGUIWindowSlideShow *pSlideShow = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIWindowSlideShow>(WINDOW_SLIDESHOW);
   if (pSlideShow)
   {
     // stop any video
-    if (g_application.m_pPlayer->IsPlayingVideo())
+    if (g_application.GetAppPlayer().IsPlayingVideo())
       g_application.StopPlaying();
 
     SortDescription sorting = m_guiState->GetSortMethod();
@@ -380,14 +379,14 @@ void CGUIWindowPictures::OnShowPictureRecursive(const std::string& strPath)
     if (pSlideShow->NumSlides())
     {
       m_slideShowStarted = true;
-      g_windowManager.ActivateWindow(WINDOW_SLIDESHOW);
+      CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(WINDOW_SLIDESHOW);
     }
   }
 }
 
 void CGUIWindowPictures::OnSlideShowRecursive(const std::string &strPicture)
 {
-  CGUIWindowSlideShow *pSlideShow = (CGUIWindowSlideShow *)g_windowManager.GetWindow(WINDOW_SLIDESHOW);
+  CGUIWindowSlideShow *pSlideShow = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIWindowSlideShow>(WINDOW_SLIDESHOW);
   if (pSlideShow)
   {   
     std::string strExtensions;
@@ -422,7 +421,7 @@ void CGUIWindowPictures::OnSlideShow()
 
 void CGUIWindowPictures::OnSlideShow(const std::string &strPicture)
 {
-  CGUIWindowSlideShow *pSlideShow = (CGUIWindowSlideShow *)g_windowManager.GetWindow(WINDOW_SLIDESHOW);
+  CGUIWindowSlideShow *pSlideShow = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIWindowSlideShow>(WINDOW_SLIDESHOW);
   if (pSlideShow)
   {    
     std::string strExtensions;
@@ -550,7 +549,7 @@ void CGUIWindowPictures::LoadPlayList(const std::string& strPlayList)
   {
     if (!pPlayList->Load(strPlayList))
     {
-      CGUIDialogOK::ShowAndGetInput(CVariant{6}, CVariant{477});
+      HELPERS::ShowOKDialogText(CVariant{6}, CVariant{477});
       return ; //hmmm unable to load playlist?
     }
   }
@@ -559,10 +558,10 @@ void CGUIWindowPictures::LoadPlayList(const std::string& strPlayList)
   if (playlist.size() > 0)
   {
     // set up slideshow
-    CGUIWindowSlideShow *pSlideShow = (CGUIWindowSlideShow *)g_windowManager.GetWindow(WINDOW_SLIDESHOW);
+    CGUIWindowSlideShow *pSlideShow = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIWindowSlideShow>(WINDOW_SLIDESHOW);
     if (!pSlideShow)
       return;
-    if (g_application.m_pPlayer->IsPlayingVideo())
+    if (g_application.GetAppPlayer().IsPlayingVideo())
       g_application.StopPlaying();
 
     // convert playlist items into slideshow items
@@ -578,7 +577,7 @@ void CGUIWindowPictures::LoadPlayList(const std::string& strPlayList)
     // start slideshow if there are items
     pSlideShow->StartSlideShow();
     if (pSlideShow->NumSlides())
-      g_windowManager.ActivateWindow(WINDOW_SLIDESHOW);
+      CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(WINDOW_SLIDESHOW);
   }
 }
 
@@ -594,7 +593,7 @@ void CGUIWindowPictures::OnItemInfo(int itemNumber)
   }
   if (item->m_bIsFolder || item->IsZIP() || item->IsRAR() || item->IsCBZ() || item->IsCBR() || !item->IsPicture())
     return;
-  CGUIDialogPictureInfo *pictureInfo = (CGUIDialogPictureInfo *)g_windowManager.GetWindow(WINDOW_DIALOG_PICTURE_INFO);
+  CGUIDialogPictureInfo *pictureInfo = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogPictureInfo>(WINDOW_DIALOG_PICTURE_INFO);
   if (pictureInfo)
   {
     pictureInfo->SetPicture(item.get());

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,7 +20,9 @@
  
 #include "threads/SystemClock.h"
 #include "GUIDialogCache.h"
+#include "ServiceBroker.h"
 #include "messaging/ApplicationMessenger.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "dialogs/GUIDialogProgress.h"
 #include "guilib/LocalizeStrings.h"
@@ -37,7 +39,7 @@ CGUIDialogCache::CGUIDialogCache(DWORD dwDelay, const std::string& strHeader, co
 {
   bSentCancel = false;
 
-  m_pDlg = (CGUIDialogProgress*)g_windowManager.GetWindow(WINDOW_DIALOG_PROGRESS);
+  m_pDlg = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogProgress>(WINDOW_DIALOG_PROGRESS);
 
   if (!m_pDlg)
     return;
@@ -138,7 +140,7 @@ void CGUIDialogCache::Process()
 
       try 
       {
-        CSingleLock lock(g_graphicsContext);
+        CSingleLock lock(CServiceBroker::GetWinSystem()->GetGfxContext());
         m_pDlg->Progress();
         if( bSentCancel )
         {
@@ -151,7 +153,7 @@ void CGUIDialogCache::Process()
           bSentCancel = true;
         }
         else if( !m_pDlg->IsDialogRunning() && m_endtime.IsTimePast() 
-              && !g_windowManager.IsWindowActive(WINDOW_DIALOG_YES_NO) )
+              && !CServiceBroker::GetGUI()->GetWindowManager().IsWindowActive(WINDOW_DIALOG_YES_NO) )
           OpenDialog();
       }
       catch(...)

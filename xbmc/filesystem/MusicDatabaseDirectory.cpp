@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -33,13 +33,9 @@
 using namespace XFILE;
 using namespace MUSICDATABASEDIRECTORY;
 
-CMusicDatabaseDirectory::CMusicDatabaseDirectory(void)
-{
-}
+CMusicDatabaseDirectory::CMusicDatabaseDirectory(void) = default;
 
-CMusicDatabaseDirectory::~CMusicDatabaseDirectory(void)
-{
-}
+CMusicDatabaseDirectory::~CMusicDatabaseDirectory(void) = default;
 
 bool CMusicDatabaseDirectory::GetDirectory(const CURL& url, CFileItemList &items)
 {
@@ -59,7 +55,7 @@ bool CMusicDatabaseDirectory::GetDirectory(const CURL& url, CFileItemList &items
     if (item->m_bIsFolder && !item->HasIcon() && !item->HasArt("thumb"))
     {
       std::string strImage = GetIcon(item->GetPath());
-      if (!strImage.empty() && g_TextureManager.HasTexture(strImage))
+      if (!strImage.empty() && CServiceBroker::GetGUI()->GetTextureManager().HasTexture(strImage))
         item->SetIconImage(strImage);
     }
   }
@@ -125,7 +121,9 @@ void CMusicDatabaseDirectory::ClearDirectoryCache(const std::string& strDirector
 
 bool CMusicDatabaseDirectory::IsAllItem(const std::string& strDirectory)
 {
-  if (StringUtils::EndsWith(strDirectory, "/-1/"))
+  //Last query parameter, ignoring any appended options, is -1
+  CURL url(strDirectory);
+  if (StringUtils::EndsWith(url.GetWithoutOptions(), "/-1/"))
     return true;
   return false;
 }

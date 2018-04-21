@@ -31,7 +31,7 @@
  **********************************************************************/
 
 #include "qry_dat.h"
-#include "system.h" // for PRId64
+#include "PlatformDefs.h" // for PRId64
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -161,9 +161,7 @@ field_value::field_value (const field_value & fv) {
 
 
 //empty destructor
-field_value::~field_value(){
-
-  }
+field_value::~field_value() = default;
 
   
 //Conversations functions

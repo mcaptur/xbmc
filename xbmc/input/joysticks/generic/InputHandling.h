@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2014-2016 Team Kodi
+ *      Copyright (C) 2014-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -20,11 +20,13 @@
 #pragma once
 
 #include "FeatureHandling.h"
-#include "input/joysticks/IDriverHandler.h"
+#include "input/joysticks/interfaces/IDriverHandler.h"
 #include "input/joysticks/JoystickTypes.h"
 
 #include <map>
 
+namespace KODI
+{
 namespace JOYSTICK
 {
   class CDriverPrimitive;
@@ -55,7 +57,7 @@ namespace JOYSTICK
     // implementation of IDriverHandler
     virtual bool OnButtonMotion(unsigned int buttonIndex, bool bPressed) override;
     virtual bool OnHatMotion(unsigned int hatIndex, HAT_STATE state) override;
-    virtual bool OnAxisMotion(unsigned int axisIndex, float position) override;
+    virtual bool OnAxisMotion(unsigned int axisIndex, float position, int center, unsigned int range) override;
     virtual void ProcessAxisMotions(void) override;
 
   private:
@@ -71,4 +73,5 @@ namespace JOYSTICK
 
     static CGUIDialogNewJoystick* const m_dialog;
   };
+}
 }

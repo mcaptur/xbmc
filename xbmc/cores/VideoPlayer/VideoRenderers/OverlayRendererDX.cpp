@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,19 +23,19 @@
 #include "cores/VideoPlayer/DVDCodecs/Overlay/DVDOverlaySpu.h"
 #include "cores/VideoPlayer/DVDCodecs/Overlay/DVDOverlaySSA.h"
 #include "guilib/D3DResource.h"
-#include "guilib/GraphicContext.h"
+#include "windowing/GraphicContext.h"
+#include "guilib/GUIShaderDX.h"
 #include "OverlayRenderer.h"
 #include "OverlayRendererUtil.h"
 #include "OverlayRendererDX.h"
-#include "windowing/WindowingFactory.h"
+#include "rendering/dx/RenderContext.h"
+#include "rendering/dx/DeviceResources.h"
 #include "utils/log.h"
 
 #ifndef ASSERT
 #include <crtdbg.h>
 #define ASSERT(f) _ASSERTE((f))
 #endif
-
-#ifdef HAS_DX
 
 using namespace OVERLAY;
 using namespace DirectX;
@@ -81,7 +81,7 @@ COverlayQuadsDX::COverlayQuadsDX(ASS_Image* images, int width, int height)
   m_count  = 0;
 
   SQuads quads;
-  if(!convert_quad(images, quads))
+  if(!convert_quad(images, quads, width))
     return;
   
   float u, v;
@@ -164,19 +164,24 @@ void COverlayQuadsDX::Render(SRenderState &state)
   if (m_count == 0)
     return;
 
-  ID3D11DeviceContext* pContext = g_Windowing.Get3D11Context();
-  CGUIShaderDX* pGUIShader = g_Windowing.GetGUIShader();
+  ID3D11Buffer* vertexBuffer = m_vertex.Get();
+  if (vertexBuffer == nullptr)
+    return;
 
-  XMMATRIX world = pGUIShader->GetWorld();
-  XMMATRIX view = pGUIShader->GetView();
-  XMMATRIX proj = pGUIShader->GetProjection();
+  ID3D11DeviceContext* pContext = DX::DeviceResources::Get()->GetD3DContext();
+  CGUIShaderDX* pGUIShader = DX::Windowing()->GetGUIShader();
 
-  if (g_graphicsContext.GetStereoMode() == RENDER_STEREO_MODE_SPLIT_HORIZONTAL
-   || g_graphicsContext.GetStereoMode() == RENDER_STEREO_MODE_SPLIT_VERTICAL)
+  XMMATRIX world, view, proj;
+  pGUIShader->GetWVP(world, view, proj);
+
+  if (CServiceBroker::GetWinSystem()->GetGfxContext().GetStereoMode() == RENDER_STEREO_MODE_SPLIT_HORIZONTAL
+   || CServiceBroker::GetWinSystem()->GetGfxContext().GetStereoMode() == RENDER_STEREO_MODE_SPLIT_VERTICAL)
   {
     CRect rect;
-    g_Windowing.GetViewPort(rect);
-    g_Windowing.SetCameraPosition(CPoint(rect.Width()*0.5f, rect.Height()*0.5f), rect.Width(), rect.Height());
+    DX::Windowing()->GetViewPort(rect);
+    DX::Windowing()->SetCameraPosition(CPoint(rect.Width() * 0.5f, rect.Height() * 0.5f),
+                                  static_cast<int>(rect.Width()),
+                                  static_cast<int>(rect.Height()));
   }
 
   XMMATRIX trans = XMMatrixTranslation(state.x, state.y, 0.0f);
@@ -187,23 +192,19 @@ void COverlayQuadsDX::Render(SRenderState &state)
   const unsigned stride = sizeof(Vertex);
   const unsigned offset = 0;
 
-  ID3D11Buffer* vertexBuffer = m_vertex.Get();
   // Set the vertex buffer to active in the input assembler so it can be rendered.
   pContext->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
   // Set the type of primitive that should be rendered from this vertex buffer, in this case triangles.
   pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-  g_Windowing.SetAlphaBlendEnable(true);
+  DX::Windowing()->SetAlphaBlendEnable(true);
   pGUIShader->Begin(SHADER_METHOD_RENDER_FONT);
 
-  ID3D11ShaderResourceView* views[] = { m_texture.GetShaderResource() };
-  pGUIShader->SetShaderViews(1, views);
+  pGUIShader->SetShaderViews(1, m_texture.GetAddressOfSRV());
   pGUIShader->Draw(m_count * 6, 0);
 
   // restoring transformation
-  pGUIShader->SetWorld(world);
-  pGUIShader->SetView(view);
-  pGUIShader->SetProjection(proj);
+  pGUIShader->SetWVP(world, view, proj);
   pGUIShader->RestoreBuffers();
 }
 
@@ -332,19 +333,24 @@ void COverlayImageDX::Load(uint32_t* rgba, int width, int height, int stride)
 
 void COverlayImageDX::Render(SRenderState &state)
 {
-  ID3D11DeviceContext* pContext = g_Windowing.Get3D11Context();
-  CGUIShaderDX* pGUIShader = g_Windowing.GetGUIShader();
+  ID3D11Buffer* vertexBuffer = m_vertex.Get();
+  if (vertexBuffer == nullptr)
+    return;
 
-  XMMATRIX world = pGUIShader->GetWorld();
-  XMMATRIX view = pGUIShader->GetView();
-  XMMATRIX proj = pGUIShader->GetProjection();
+  ID3D11DeviceContext* pContext = DX::DeviceResources::Get()->GetD3DContext();
+  CGUIShaderDX* pGUIShader = DX::Windowing()->GetGUIShader();
 
-  if (g_graphicsContext.GetStereoMode() == RENDER_STEREO_MODE_SPLIT_HORIZONTAL
-   || g_graphicsContext.GetStereoMode() == RENDER_STEREO_MODE_SPLIT_VERTICAL)
+  XMMATRIX world, view, proj;
+  pGUIShader->GetWVP(world, view, proj);
+
+  if (CServiceBroker::GetWinSystem()->GetGfxContext().GetStereoMode() == RENDER_STEREO_MODE_SPLIT_HORIZONTAL
+   || CServiceBroker::GetWinSystem()->GetGfxContext().GetStereoMode() == RENDER_STEREO_MODE_SPLIT_VERTICAL)
   {
     CRect rect;
-    g_Windowing.GetViewPort(rect);
-    g_Windowing.SetCameraPosition(CPoint(rect.Width()*0.5f, rect.Height()*0.5f), rect.Width(), rect.Height());
+    DX::Windowing()->GetViewPort(rect);
+    DX::Windowing()->SetCameraPosition(CPoint(rect.Width() * 0.5f, rect.Height() * 0.5f),
+                                  static_cast<int>(rect.Width()),
+                                  static_cast<int>(rect.Height()));
   }
 
   XMMATRIX trans = m_pos == POSITION_RELATIVE
@@ -357,22 +363,16 @@ void COverlayImageDX::Render(SRenderState &state)
   const unsigned stride = m_vertex.GetStride();
   const unsigned offset = 0;
 
-  ID3D11Buffer* vertexBuffer = m_vertex.Get();
   pContext->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
   pContext->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
   pGUIShader->Begin(SHADER_METHOD_RENDER_TEXTURE_NOBLEND);
-  g_Windowing.SetAlphaBlendEnable(true);
+  DX::Windowing()->SetAlphaBlendEnable(true);
 
-  ID3D11ShaderResourceView* views[] = { m_texture.GetShaderResource() };
-  pGUIShader->SetShaderViews(1, views);
+  pGUIShader->SetShaderViews(1, m_texture.GetAddressOfSRV());
   pGUIShader->Draw(4, 0);
 
   // restoring transformation
-  pGUIShader->SetWorld(world);
-  pGUIShader->SetView(view);
-  pGUIShader->SetProjection(proj);
+  pGUIShader->SetWVP(world, view, proj);
   pGUIShader->RestoreBuffers();
 }
-
-#endif

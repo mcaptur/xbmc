@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@
 #include "WIN32Util.h"
 #endif
 #ifndef TARGET_WINDOWS
-#include "linux/XTimeUtils.h"
+#include "platform/linux/XTimeUtils.h"
 #endif
 #include <stdlib.h>
 
@@ -41,7 +41,7 @@ CAppParamParser::CAppParamParser()
   m_testmode = false;
 }
 
-void CAppParamParser::Parse(const char* argv[], int nArgs)
+void CAppParamParser::Parse(const char* const* argv, int nArgs)
 {
   if (nArgs > 1)
   {
@@ -56,13 +56,13 @@ void CAppParamParser::Parse(const char* argv[], int nArgs)
         {
           if ((argv[next][0] != '-') && (argv[next][0] == '/'))
           {
-            CInputManager::GetInstance().SetRemoteControlName(argv[next]);
+            m_remoteControlName = argv[next];
             i++;
           }
         }
       }
       else if (strnicmp(argv[i], "-n", 2) == 0 || strnicmp(argv[i], "--nolirc", 8) == 0)
-        CInputManager::GetInstance().DisableRemoteControl();
+        m_remoteControlEnabled = false;
 
       if (stricmp(argv[i], "-d") == 0)
       {
@@ -98,10 +98,6 @@ void CAppParamParser::DisplayHelp()
   printf("\t\t\tenables network settings.\n");
   printf("  -p or --portable\t%s will look for configurations in install folder instead of ~/.%s\n", CSysInfo::GetAppName().c_str(), lcAppName.c_str());
   printf("  --legacy-res\t\tEnables screen resolutions such as PAL, NTSC, etc.\n");
-#ifdef HAS_LIRC
-  printf("  -l or --lircdev\tLircDevice to use default is " LIRC_DEVICE " .\n");
-  printf("  -n or --nolirc\tdo not use Lirc, i.e. no remote input.\n");
-#endif
   printf("  --debug\t\tEnable debug logging\n");
   printf("  --version\t\tPrint version information\n");
   printf("  --test\t\tEnable test mode. [FILE] required.\n");
@@ -141,8 +137,10 @@ void CAppParamParser::ParseArg(const std::string &arg)
   {
     if (m_testmode)
       g_application.SetEnableTestMode(true);
+
     CFileItemPtr pItem(new CFileItem(arg));
     pItem->SetPath(arg);
+
     m_playlist.Add(pItem);
   }
 }

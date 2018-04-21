@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,19 +18,21 @@
  *
  */
 
-#include "system.h"
 #include "GUIAudioManager.h"
 #include "ServiceBroker.h"
+#include "input/ActionIDs.h"
+#include "input/ActionTranslator.h"
 #include "input/Key.h"
-#include "input/ButtonTranslator.h"
+#include "input/WindowTranslator.h"
 #include "settings/lib/Setting.h"
+#include "settings/Settings.h"
 #include "threads/SingleLock.h"
 #include "utils/URIUtils.h"
 #include "utils/XBMCTinyXML.h"
 #include "filesystem/Directory.h"
 #include "addons/AddonManager.h"
 #include "addons/Skin.h"
-#include "cores/AudioEngine/AEFactory.h"
+#include "cores/AudioEngine/Interfaces/AE.h"
 #include "utils/log.h"
 
 CGUIAudioManager g_audioManager;
@@ -40,11 +42,9 @@ CGUIAudioManager::CGUIAudioManager()
   m_bEnabled = false;
 }
 
-CGUIAudioManager::~CGUIAudioManager()
-{
-}
+CGUIAudioManager::~CGUIAudioManager() = default;
 
-void CGUIAudioManager::OnSettingChanged(const CSetting *setting)
+void CGUIAudioManager::OnSettingChanged(std::shared_ptr<const CSetting> setting)
 {
   if (setting == NULL)
     return;
@@ -57,7 +57,7 @@ void CGUIAudioManager::OnSettingChanged(const CSetting *setting)
   }
 }
 
-bool CGUIAudioManager::OnSettingUpdate(CSetting* &setting, const char *oldSettingId, const TiXmlNode *oldSettingNode)
+bool CGUIAudioManager::OnSettingUpdate(std::shared_ptr<CSetting> setting, const char *oldSettingId, const TiXmlNode *oldSettingNode)
 {
   if (setting == NULL)
     return false;
@@ -65,10 +65,10 @@ bool CGUIAudioManager::OnSettingUpdate(CSetting* &setting, const char *oldSettin
   if (setting->GetId() == CSettings::SETTING_LOOKANDFEEL_SOUNDSKIN)
   {
     //Migrate the old settings
-    if (((CSettingString*)setting)->GetValue() == "SKINDEFAULT")
-      ((CSettingString*)setting)->Reset();
-    else if (((CSettingString*)setting)->GetValue() == "OFF")
-      ((CSettingString*)setting)->SetValue("");
+    if (std::static_pointer_cast<CSettingString>(setting)->GetValue() == "SKINDEFAULT")
+      std::static_pointer_cast<CSettingString>(setting)->Reset();
+    else if (std::static_pointer_cast<CSettingString>(setting)->GetValue() == "OFF")
+      std::static_pointer_cast<CSettingString>(setting)->SetValue("");
   }
   return true;
 }
@@ -222,13 +222,13 @@ void CGUIAudioManager::UnLoad()
 
 std::string GetSoundSkinPath()
 {
-  auto setting = static_cast<CSettingString*>(CServiceBroker::GetSettings().GetSetting(CSettings::SETTING_LOOKANDFEEL_SOUNDSKIN));
+  auto setting = std::static_pointer_cast<CSettingString>(CServiceBroker::GetSettings().GetSetting(CSettings::SETTING_LOOKANDFEEL_SOUNDSKIN));
   auto value = setting->GetValue();
   if (value.empty())
     return "";
 
   ADDON::AddonPtr addon;
-  if (!ADDON::CAddonMgr::GetInstance().GetAddon(value, addon, ADDON::ADDON_RESOURCE_UISOUNDS))
+  if (!CServiceBroker::GetAddonMgr().GetAddon(value, addon, ADDON::ADDON_RESOURCE_UISOUNDS))
   {
     CLog::Log(LOGNOTICE, "Unknown sounds addon '%s'. Setting default sounds.", value.c_str());
     setting->Reset();
@@ -279,10 +279,10 @@ bool CGUIAudioManager::Load()
     while (pAction)
     {
       TiXmlNode* pIdNode = pAction->FirstChild("name");
-      int id = 0;    // action identity
+      unsigned int id = ACTION_NONE;    // action identity
       if (pIdNode && pIdNode->FirstChild())
       {
-        CButtonTranslator::TranslateActionString(pIdNode->FirstChild()->Value(), id);
+        CActionTranslator::TranslateString(pIdNode->FirstChild()->Value(), id);
       }
 
       TiXmlNode* pFileNode = pAction->FirstChild("file");
@@ -290,7 +290,7 @@ bool CGUIAudioManager::Load()
       if (pFileNode && pFileNode->FirstChild())
         strFile += pFileNode->FirstChild()->Value();
 
-      if (id > 0 && !strFile.empty())
+      if (id != ACTION_NONE && !strFile.empty())
       {
         std::string filename = URIUtils::AddFileToFolder(m_strMediaDir, strFile);
         IAESound *sound = LoadSound(filename);
@@ -316,7 +316,7 @@ bool CGUIAudioManager::Load()
       if (pIdNode)
       {
         if (pIdNode->FirstChild())
-          id = CButtonTranslator::TranslateWindow(pIdNode->FirstChild()->Value());
+          id = CWindowTranslator::TranslateWindow(pIdNode->FirstChild()->Value());
       }
 
       CWindowSounds sounds;
@@ -343,9 +343,13 @@ IAESound* CGUIAudioManager::LoadSound(const std::string &filename)
     return it->second.sound;
   }
 
-  IAESound *sound = CAEFactory::MakeSound(filename);
+  IAE *ae = CServiceBroker::GetActiveAE();
+  if (!ae)
+    return nullptr;
+
+  IAESound *sound = ae->MakeSound(filename);
   if (!sound)
-    return NULL;
+    return nullptr;
 
   CSoundInfo info;
   info.usage = 1;
@@ -358,10 +362,15 @@ IAESound* CGUIAudioManager::LoadSound(const std::string &filename)
 void CGUIAudioManager::FreeSound(IAESound *sound)
 {
   CSingleLock lock(m_cs);
-  for(soundCache::iterator it = m_soundCache.begin(); it != m_soundCache.end(); ++it) {
-    if (it->second.sound == sound) {
-      if (--it->second.usage == 0) {     
-        CAEFactory::FreeSound(sound);
+  IAE *ae = CServiceBroker::GetActiveAE();
+  for(soundCache::iterator it = m_soundCache.begin(); it != m_soundCache.end(); ++it)
+  {
+    if (it->second.sound == sound)
+    {
+      if (--it->second.usage == 0)
+      {
+        if (ae)
+          ae->FreeSound(sound);
         m_soundCache.erase(it);
       }
       return;
@@ -372,9 +381,13 @@ void CGUIAudioManager::FreeSound(IAESound *sound)
 void CGUIAudioManager::FreeSoundAllUsage(IAESound *sound)
 {
   CSingleLock lock(m_cs);
-  for(soundCache::iterator it = m_soundCache.begin(); it != m_soundCache.end(); ++it) {
-    if (it->second.sound == sound) {   
-      CAEFactory::FreeSound(sound);
+  IAE *ae = CServiceBroker::GetActiveAE();
+  for(soundCache::iterator it = m_soundCache.begin(); it != m_soundCache.end(); ++it)
+  {
+    if (it->second.sound == sound)
+    {
+      if (ae)
+       ae->FreeSound(sound);
       m_soundCache.erase(it);
       return;
     }

@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2014-2016 Team Kodi
+ *      Copyright (C) 2014-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -21,18 +21,24 @@
 #include "AddonInputHandling.h"
 #include "input/joysticks/generic/DriverReceiving.h"
 #include "input/joysticks/generic/InputHandling.h"
-#include "input/joysticks/IInputHandler.h"
-#include "input/joysticks/IDriverReceiver.h"
+#include "input/joysticks/interfaces/IInputHandler.h"
+#include "input/joysticks/interfaces/IDriverReceiver.h"
+#include "input/keyboard/generic/KeyboardInputHandling.h"
+#include "input/keyboard/interfaces/IKeyboardInputHandler.h"
+#include "input/mouse/generic/MouseInputHandling.h"
+#include "input/mouse/interfaces/IMouseInputHandler.h"
 #include "peripherals/addons/AddonButtonMap.h"
 #include "peripherals/devices/PeripheralJoystick.h"
 #include "peripherals/Peripherals.h"
+#include "utils/log.h"
 
+using namespace KODI;
 using namespace JOYSTICK;
 using namespace PERIPHERALS;
 
-CAddonInputHandling::CAddonInputHandling(CPeripheral* peripheral, IInputHandler* handler, IDriverReceiver* receiver)
+CAddonInputHandling::CAddonInputHandling(CPeripherals& manager, CPeripheral* peripheral, IInputHandler* handler, IDriverReceiver* receiver)
 {
-  PeripheralAddonPtr addon = g_peripherals.GetAddonWithButtonMap(peripheral);
+  PeripheralAddonPtr addon = manager.GetAddonWithButtonMap(peripheral);
 
   if (!addon)
   {
@@ -60,10 +66,55 @@ CAddonInputHandling::CAddonInputHandling(CPeripheral* peripheral, IInputHandler*
   }
 }
 
+CAddonInputHandling::CAddonInputHandling(CPeripherals& manager, CPeripheral* peripheral, KEYBOARD::IKeyboardInputHandler* handler)
+{
+  PeripheralAddonPtr addon = manager.GetAddonWithButtonMap(peripheral);
+
+  if (!addon)
+  {
+    CLog::Log(LOGDEBUG, "Failed to locate add-on for \"%s\"", peripheral->DeviceName().c_str());
+  }
+  else
+  {
+    m_buttonMap.reset(new CAddonButtonMap(peripheral, addon, handler->ControllerID()));
+    if (m_buttonMap->Load())
+    {
+      m_keyboardHandler.reset(new KEYBOARD::CKeyboardInputHandling(handler, m_buttonMap.get()));
+    }
+    else
+    {
+      m_buttonMap.reset();
+    }
+  }
+}
+
+CAddonInputHandling::CAddonInputHandling(CPeripherals& manager, CPeripheral* peripheral, MOUSE::IMouseInputHandler* handler)
+{
+  PeripheralAddonPtr addon = manager.GetAddonWithButtonMap(peripheral);
+
+  if (!addon)
+  {
+    CLog::Log(LOGDEBUG, "Failed to locate add-on for \"%s\"", peripheral->DeviceName().c_str());
+  }
+  else
+  {
+    m_buttonMap.reset(new CAddonButtonMap(peripheral, addon, handler->ControllerID()));
+    if (m_buttonMap->Load())
+    {
+      m_mouseHandler.reset(new MOUSE::CMouseInputHandling(handler, m_buttonMap.get()));
+    }
+    else
+    {
+      m_buttonMap.reset();
+    }
+  }
+}
+
 CAddonInputHandling::~CAddonInputHandling(void)
 {
   m_driverHandler.reset();
   m_inputReceiver.reset();
+  m_keyboardHandler.reset();
   m_buttonMap.reset();
 }
 
@@ -83,10 +134,10 @@ bool CAddonInputHandling::OnHatMotion(unsigned int hatIndex, HAT_STATE state)
   return false;
 }
 
-bool CAddonInputHandling::OnAxisMotion(unsigned int axisIndex, float position)
+bool CAddonInputHandling::OnAxisMotion(unsigned int axisIndex, float position, int center, unsigned int range)
 {
   if (m_driverHandler)
-    return m_driverHandler->OnAxisMotion(axisIndex, position);
+    return m_driverHandler->OnAxisMotion(axisIndex, position, center, range);
 
   return false;
 }
@@ -95,6 +146,43 @@ void CAddonInputHandling::ProcessAxisMotions(void)
 {
   if (m_driverHandler)
     m_driverHandler->ProcessAxisMotions();
+}
+
+bool CAddonInputHandling::OnKeyPress(const CKey& key)
+{
+  if (m_keyboardHandler)
+    return m_keyboardHandler->OnKeyPress(key);
+
+  return false;
+}
+
+void CAddonInputHandling::OnKeyRelease(const CKey& key)
+{
+  if (m_keyboardHandler)
+    m_keyboardHandler->OnKeyRelease(key);
+}
+
+
+bool CAddonInputHandling::OnPosition(int x, int y)
+{
+  if (m_mouseHandler)
+    return m_mouseHandler->OnPosition(x, y);
+
+  return false;
+}
+
+bool CAddonInputHandling::OnButtonPress(MOUSE::BUTTON_ID button)
+{
+  if (m_mouseHandler)
+    return m_mouseHandler->OnButtonPress(button);
+
+  return false;
+}
+
+void CAddonInputHandling::OnButtonRelease(MOUSE::BUTTON_ID button)
+{
+  if (m_mouseHandler)
+    m_mouseHandler->OnButtonRelease(button);
 }
 
 bool CAddonInputHandling::SetRumbleState(const JOYSTICK::FeatureName& feature, float magnitude)

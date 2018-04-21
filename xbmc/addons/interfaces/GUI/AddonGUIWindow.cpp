@@ -22,7 +22,9 @@
 
 #include "Application.h"
 #include "FileItem.h"
+#include "ServiceBroker.h"
 #include "addons/Addon.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/TextureManager.h"
 #include "input/Key.h"
@@ -61,13 +63,11 @@ CGUIAddonWindow::CGUIAddonWindow(int id, const std::string& strXML, CAddon* addo
   m_loadType = LOAD_ON_GUI_INIT;
 }
 
-CGUIAddonWindow::~CGUIAddonWindow(void)
-{
-}
+CGUIAddonWindow::~CGUIAddonWindow(void) = default;
 
 bool CGUIAddonWindow::OnAction(const CAction &action)
 {
-  // Let addon decide whether it wants to hande action first
+  // Let addon decide whether it wants to handle action first
   if (CBOnAction && CBOnAction(m_clientHandle, action.GetID()))
     return true;
 
@@ -145,7 +145,7 @@ bool CGUIAddonWindow::OnMessage(CGUIMessage& message)
 
       if (CBOnClick && iControl && iControl != (int)this->GetID())
       {
-        CGUIControl* controlClicked = (CGUIControl*)this->GetControl(iControl);
+        CGUIControl* controlClicked = this->GetControl(iControl);
 
         // The old python way used to check list AND SELECITEM method or if its a button, radiobutton.
         // Its done this way for now to allow other controls without a python version like togglebutton to still raise a onAction event
@@ -164,7 +164,7 @@ bool CGUIAddonWindow::OnMessage(CGUIMessage& message)
 //            inf->pObject = Action_FromAction(CAction(ACTION_CONTEXT_MENU));
 //            inf->pCallbackWindow = pCallbackWindow;
 //
-//            // aquire lock?
+//            // acquire lock?
 //            PyXBMC_AddPendingCall(Py_XBMC_Event_OnAction, inf);
 //            PulseActionEvent();
           }
@@ -177,7 +177,7 @@ bool CGUIAddonWindow::OnMessage(CGUIMessage& message)
   return CGUIMediaWindow::OnMessage(message);
 }
 
-void CGUIAddonWindow::AllocResources(bool forceLoad /*= FALSE */)
+void CGUIAddonWindow::AllocResources(bool forceLoad /*= false */)
 {
   std::string tmpDir = URIUtils::GetDirectory(GetProperty("xmlfile").asString());
   std::string fallbackMediaPath;
@@ -186,21 +186,21 @@ void CGUIAddonWindow::AllocResources(bool forceLoad /*= FALSE */)
   m_mediaDir = fallbackMediaPath;
 
   //CLog::Log(LOGDEBUG, "CGUIPythonWindowXML::AllocResources called: %s", fallbackMediaPath.c_str());
-  g_TextureManager.AddTexturePath(m_mediaDir);
+  CServiceBroker::GetGUI()->GetTextureManager().AddTexturePath(m_mediaDir);
   CGUIMediaWindow::AllocResources(forceLoad);
-  g_TextureManager.RemoveTexturePath(m_mediaDir);
+  CServiceBroker::GetGUI()->GetTextureManager().RemoveTexturePath(m_mediaDir);
 }
 
-void CGUIAddonWindow::FreeResources(bool forceUnLoad /*= FALSE */)
+void CGUIAddonWindow::FreeResources(bool forceUnLoad /*= false */)
 {
   CGUIMediaWindow::FreeResources(forceUnLoad);
 }
 
 void CGUIAddonWindow::Render()
 {
-  g_TextureManager.AddTexturePath(m_mediaDir);
+  CServiceBroker::GetGUI()->GetTextureManager().AddTexturePath(m_mediaDir);
   CGUIMediaWindow::Render();
-  g_TextureManager.RemoveTexturePath(m_mediaDir);
+  CServiceBroker::GetGUI()->GetTextureManager().RemoveTexturePath(m_mediaDir);
 }
 
 void CGUIAddonWindow::Update()
@@ -264,7 +264,7 @@ void CGUIAddonWindow::ClearList()
 void CGUIAddonWindow::GetContextButtons(int itemNumber, CContextButtons &buttons)
 {
   // maybe on day we can make an easy way to do this context menu
-  // with out this method overriding the MediaWindow version, it will display 'Add to Favorites'
+  // with out this method overriding the MediaWindow version, it will display 'Add to Favourites'
 }
 
 void CGUIAddonWindow::WaitForActionEvent(unsigned int timeout)
@@ -281,7 +281,7 @@ void CGUIAddonWindow::PulseActionEvent()
 bool CGUIAddonWindow::OnClick(int iItem, const std::string &player)
 {
   // Hook Over calling  CGUIMediaWindow::OnClick(iItem) results in it trying to PLAY the file item
-  // which if its not media is BAD and 99 out of 100 times undesireable.
+  // which if its not media is BAD and 99 out of 100 times undesirable.
   return false;
 }
 
@@ -302,9 +302,7 @@ CGUIAddonWindowDialog::CGUIAddonWindowDialog(int id, const std::string& strXML, 
   m_bIsDialog = true;
 }
 
-CGUIAddonWindowDialog::~CGUIAddonWindowDialog(void)
-{
-}
+CGUIAddonWindowDialog::~CGUIAddonWindowDialog(void) = default;
 
 bool CGUIAddonWindowDialog::OnMessage(CGUIMessage &message)
 {
@@ -316,9 +314,9 @@ bool CGUIAddonWindowDialog::OnMessage(CGUIMessage &message)
 
 void CGUIAddonWindowDialog::Show(bool show /* = true */)
 {
-  unsigned int iCount = g_graphicsContext.exit();
+  unsigned int iCount = CServiceBroker::GetWinSystem()->GetGfxContext().exit();
   CApplicationMessenger::GetInstance().SendMsg(TMSG_GUI_ADDON_DIALOG, 1, show ? 1 : 0, static_cast<void*>(this));
-  g_graphicsContext.restore(iCount);
+  CServiceBroker::GetWinSystem()->GetGfxContext().restore(iCount);
 }
 
 void CGUIAddonWindowDialog::Show_Internal(bool show /* = true */)
@@ -327,7 +325,7 @@ void CGUIAddonWindowDialog::Show_Internal(bool show /* = true */)
   {
     m_bModal = true;
     m_bRunning = true;
-    g_windowManager.RegisterDialog(this);
+    CServiceBroker::GetGUI()->GetWindowManager().RegisterDialog(this);
 
     // active this window...
     CGUIMessage msg(GUI_MSG_WINDOW_INIT, 0, 0, WINDOW_INVALID, m_iWindowId);
@@ -348,7 +346,7 @@ void CGUIAddonWindowDialog::Show_Internal(bool show /* = true */)
     CGUIMessage msg(GUI_MSG_WINDOW_DEINIT,0,0);
     OnMessage(msg);
 
-    g_windowManager.RemoveDialog(GetID());
+    CServiceBroker::GetGUI()->GetWindowManager().RemoveDialog(GetID());
   }
 }
 

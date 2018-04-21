@@ -23,6 +23,7 @@
 #include "addons/AddonManager.h"
 #include "addons/AddonInstaller.h"
 #include "addons/RepositoryUpdater.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "messaging/helpers/DialogHelper.h"
 #include "settings/Settings.h"
@@ -55,21 +56,21 @@ CAddonSystemSettings& CAddonSystemSettings::GetInstance()
   return inst;
 }
 
-void CAddonSystemSettings::OnSettingAction(const CSetting* setting)
+void CAddonSystemSettings::OnSettingAction(std::shared_ptr<const CSetting> setting)
 {
   if (setting->GetId() == CSettings::SETTING_ADDONS_MANAGE_DEPENDENCIES)
   {
     std::vector<std::string> params{"addons://dependencies/", "return"};
-    g_windowManager.ActivateWindow(WINDOW_ADDON_BROWSER, params);
+    CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(WINDOW_ADDON_BROWSER, params);
   }
   else if (setting->GetId() == CSettings::SETTING_ADDONS_SHOW_RUNNING)
   {
     std::vector<std::string> params{"addons://running/", "return"};
-    g_windowManager.ActivateWindow(WINDOW_ADDON_BROWSER, params);
+    CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(WINDOW_ADDON_BROWSER, params);
   }
 }
 
-void CAddonSystemSettings::OnSettingChanged(const CSetting* setting)
+void CAddonSystemSettings::OnSettingChanged(std::shared_ptr<const CSetting> setting)
 {
   using namespace KODI::MESSAGING::HELPERS;
 
@@ -87,7 +88,7 @@ bool CAddonSystemSettings::GetActive(const TYPE& type, AddonPtr& addon)
   if (it != m_activeSettings.end())
   {
     auto settingValue = CServiceBroker::GetSettings().GetString(it->second);
-    return CAddonMgr::GetInstance().GetAddon(settingValue, addon, type);
+    return CServiceBroker::GetAddonMgr().GetAddon(settingValue, addon, type);
   }
   return false;
 }
@@ -115,7 +116,7 @@ bool CAddonSystemSettings::UnsetActive(const AddonPtr& addon)
   if (it == m_activeSettings.end())
     return true;
 
-  auto setting = static_cast<CSettingString*>(CServiceBroker::GetSettings().GetSetting(it->second));
+  auto setting = std::static_pointer_cast<CSettingString>(CServiceBroker::GetSettings().GetSetting(it->second));
   if (setting->GetValue() != addon->ID())
     return true;
 
@@ -131,9 +132,9 @@ std::vector<std::string> CAddonSystemSettings::MigrateAddons(std::function<void(
 {
   auto getIncompatible = [](){
     VECADDONS incompatible;
-    CAddonMgr::GetInstance().GetAddons(incompatible);
+    CServiceBroker::GetAddonMgr().GetAddons(incompatible);
     incompatible.erase(std::remove_if(incompatible.begin(), incompatible.end(),
-        [](const AddonPtr a){ return CAddonMgr::GetInstance().IsCompatible(*a); }), incompatible.end());
+        [](const AddonPtr a){ return CServiceBroker::GetAddonMgr().IsCompatible(*a); }), incompatible.end());
     return incompatible;
   };
 
@@ -144,11 +145,11 @@ std::vector<std::string> CAddonSystemSettings::MigrateAddons(std::function<void(
   {
     onMigrate();
 
-    if (CRepositoryUpdater::GetInstance().CheckForUpdates())
-      CRepositoryUpdater::GetInstance().Await();
+    if (CServiceBroker::GetRepositoryUpdater().CheckForUpdates())
+      CServiceBroker::GetRepositoryUpdater().Await();
 
     CLog::Log(LOGINFO, "ADDON: waiting for add-ons to update...");
-    CAddonInstaller::GetInstance().InstallUpdates();
+    CAddonInstaller::GetInstance().InstallUpdatesAndWait();
   }
 
   auto incompatible = getIncompatible();
@@ -163,7 +164,7 @@ std::vector<std::string> CAddonSystemSettings::MigrateAddons(std::function<void(
       CLog::Log(LOGWARNING, "ADDON: failed to unset %s", addon->ID().c_str());
       continue;
     }
-    if (!CAddonMgr::GetInstance().DisableAddon(addon->ID()))
+    if (!CServiceBroker::GetAddonMgr().DisableAddon(addon->ID()))
     {
       CLog::Log(LOGWARNING, "ADDON: failed to disable %s", addon->ID().c_str());
     }

@@ -9,7 +9,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -36,8 +36,8 @@
 #include <memory>
 #include <cassert>
 
-#include "TransformMatrix.h"
-#include "system.h"
+#include "utils/Color.h"
+#include "utils/TransformMatrix.h"
 
 #define FONT_CACHE_TIME_LIMIT (1000)
 #define FONT_CACHE_DIST_LIMIT (0.01f)
@@ -52,7 +52,7 @@ template<class Position>
 struct CGUIFontCacheKey
 {
   Position m_pos;
-  vecColors &m_colors;
+  std::vector<UTILS::Color> &m_colors;
   vecText &m_text;
   uint32_t m_alignment;
   float m_maxPixelWidth;
@@ -62,7 +62,7 @@ struct CGUIFontCacheKey
   float m_scaleY;
 
   CGUIFontCacheKey(Position pos,
-                   vecColors &colors, vecText &text,
+                   std::vector<UTILS::Color> &colors, vecText &text,
                    uint32_t alignment, float maxPixelWidth,
                    bool scrolling, const TransformMatrix &matrix,
                    float scaleX, float scaleY) :
@@ -86,7 +86,7 @@ struct CGUIFontCacheEntry
   CGUIFontCacheEntry(const CGUIFontCache<Position, Value> &cache, const CGUIFontCacheKey<Position> &key, unsigned int nowMillis) :
     m_cache(cache),
     m_key(key.m_pos,
-          *new vecColors, *new vecText,
+          *new std::vector<UTILS::Color>, *new vecText,
           key.m_alignment, key.m_maxPixelWidth,
           key.m_scrolling, m_matrix,
           key.m_scaleX, key.m_scaleY),
@@ -113,7 +113,7 @@ struct CGUIFontCacheHash
       hash += key.m_text[i];
     if (key.m_colors.size())
       hash += key.m_colors[0];
-    hash += MatrixHashContribution(key);
+    hash += static_cast<size_t>(MatrixHashContribution(key)); // horrible
     return hash;
   }
 };
@@ -140,15 +140,18 @@ class CGUIFontCache
 {
   CGUIFontCacheImpl<Position, Value>* m_impl;
 
+  CGUIFontCache(const CGUIFontCache<Position,Value>&) = delete;
+  const CGUIFontCache<Position,Value>& operator=(const CGUIFontCache<Position,Value>&) = delete;
+
 public:
   const CGUIFontTTFBase &m_font;
 
-  CGUIFontCache(CGUIFontTTFBase &font);
+  explicit CGUIFontCache(CGUIFontTTFBase &font);
 
   ~CGUIFontCache();
  
   Value &Lookup(Position &pos,
-                const vecColors &colors, const vecText &text,
+                const std::vector<UTILS::Color> &colors, const vecText &text,
                 uint32_t alignment, float maxPixelWidth,
                 bool scrolling,
                 unsigned int nowMillis, bool &dirtyCache);
@@ -190,7 +193,7 @@ struct CGUIFontCacheDynamicPosition
   float m_x;
   float m_y;
   float m_z;
-  CGUIFontCacheDynamicPosition() {}
+  CGUIFontCacheDynamicPosition() = default;
   CGUIFontCacheDynamicPosition(float x, float y, float z) : m_x(x), m_y(y), m_z(z) {}
   void UpdateWithOffsets(const CGUIFontCacheDynamicPosition &cached, bool scrolling)
   {

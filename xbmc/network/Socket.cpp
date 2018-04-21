@@ -2,7 +2,7 @@
  * Socket classes
  *      Copyright (c) 2008 d4rk
  *      Copyright (C) 2008-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,10 +19,6 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
-
-#include "system.h"
-
-#ifdef HAS_EVENT_SERVER
 
 #include "Socket.h"
 #include "utils/log.h"
@@ -73,7 +69,6 @@ bool CPosixUDPSocket::Bind(bool localOnly, int port, int range)
           m_addr.saddr.saddr6.sin6_port = htons(m_iPort);
           if (bind(testSocket, (struct sockaddr*)&m_addr.saddr, m_addr.size) >= 0)
           {
-            closesocket(testSocket);
             m_ipv6Socket = true;
             break;
           }
@@ -81,10 +76,11 @@ bool CPosixUDPSocket::Bind(bool localOnly, int port, int range)
         if (!m_ipv6Socket)
         {
           CLog::Log(LOGWARNING, "UDP: Unable to bind to advertised ipv6, fallback to ipv4");
-          closesocket(testSocket);
           close(m_iSock);
           m_iSock = INVALID_SOCKET;
         }
+
+        closesocket(testSocket);
       }
     }
   }
@@ -309,5 +305,3 @@ CBaseSocket* CSocketListener::GetNextReadySocket()
   }
   return NULL;
 }
-
-#endif // HAS_EVENT_SERVER

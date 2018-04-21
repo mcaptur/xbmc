@@ -1,6 +1,6 @@
 /*
    *      Copyright (C) 2005-2015 Team XBMC
-   *      http://xbmc.org
+   *      http://kodi.tv
    *
    *  This Program is free software; you can redistribute it and/or modify
    *  it under the terms of the GNU General Public License as published by
@@ -21,11 +21,15 @@
 #include "GUIBuiltins.h"
 
 #include "Application.h"
+#include "ServiceBroker.h"
 #include "messaging/ApplicationMessenger.h"
 #include "dialogs/GUIDialogKaiToast.h"
 #include "dialogs/GUIDialogNumeric.h"
 #include "filesystem/Directory.h"
+#include "input/ActionTranslator.h"
 #include "input/Key.h"
+#include "input/WindowTranslator.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
 #include "guilib/StereoscopicsManager.h"
@@ -51,10 +55,10 @@ using namespace KODI::MESSAGING;
 static int Action(const std::vector<std::string>& params)
 {
   // try translating the action from our ButtonTranslator
-  int actionID;
-  if (CButtonTranslator::TranslateActionString(params[0].c_str(), actionID))
+  unsigned int actionID;
+  if (CActionTranslator::TranslateString(params[0], actionID))
   {
-    int windowID = params.size() == 2 ? CButtonTranslator::TranslateWindow(params[1]) : WINDOW_INVALID;
+    int windowID = params.size() == 2 ? CWindowTranslator::TranslateWindow(params[1]) : WINDOW_INVALID;
     CApplicationMessenger::GetInstance().SendMsg(TMSG_GUI_ACTION, windowID, -1, static_cast<void*>(new CAction(actionID)));
   }
 
@@ -82,23 +86,23 @@ static int ActivateWindow(const std::vector<std::string>& params2)
   }
 
   // confirm the window destination is valid prior to switching
-  int iWindow = CButtonTranslator::TranslateWindow(strWindow);
+  int iWindow = CWindowTranslator::TranslateWindow(strWindow);
   if (iWindow != WINDOW_INVALID)
   {
-    // compate the given directory param with the current active directory
+    // compare the given directory param with the current active directory
     bool bIsSameStartFolder = true;
     if (!params.empty())
     {
-      CGUIWindow *activeWindow = g_windowManager.GetWindow(g_windowManager.GetActiveWindow());
+      CGUIWindow *activeWindow = CServiceBroker::GetGUI()->GetWindowManager().GetWindow(CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow());
       if (activeWindow && activeWindow->IsMediaWindow())
-        bIsSameStartFolder = ((CGUIMediaWindow*) activeWindow)->IsSameStartFolder(params[0]);
+        bIsSameStartFolder = static_cast<CGUIMediaWindow*>(activeWindow)->IsSameStartFolder(params[0]);
     }
 
     // activate window only if window and path differ from the current active window
-    if (iWindow != g_windowManager.GetActiveWindow() || !bIsSameStartFolder)
+    if (iWindow != CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow() || !bIsSameStartFolder)
     {
       g_application.WakeUpScreenSaverAndDPMS();
-      g_windowManager.ActivateWindow(iWindow, params, Replace);
+      CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(iWindow, params, Replace);
       return 0;
     }
   }
@@ -125,22 +129,22 @@ static int ActivateAndFocus(const std::vector<std::string>& params)
   std::string strWindow = params[0];
 
   // confirm the window destination is valid prior to switching
-  int iWindow = CButtonTranslator::TranslateWindow(strWindow);
+  int iWindow = CWindowTranslator::TranslateWindow(strWindow);
   if (iWindow != WINDOW_INVALID)
   {
-    if (iWindow != g_windowManager.GetActiveWindow())
+    if (iWindow != CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow())
     {
       // disable the screensaver
       g_application.WakeUpScreenSaverAndDPMS();
-      g_windowManager.ActivateWindow(iWindow, {}, Replace);
+      CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(iWindow, {}, Replace);
 
       unsigned int iPtr = 1;
       while (params.size() > iPtr + 1)
       {
-        CGUIMessage msg(GUI_MSG_SETFOCUS, g_windowManager.GetFocusedWindow(),
+        CGUIMessage msg(GUI_MSG_SETFOCUS, CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindowOrDialog(),
                         atol(params[iPtr].c_str()),
                         (params.size() >= iPtr + 2) ? atol(params[iPtr + 1].c_str())+1 : 0);
-        g_windowManager.SendMessage(msg);
+        CServiceBroker::GetGUI()->GetWindowManager().SendMessage(msg);
         iPtr += 2;
       }
       return 0;
@@ -227,7 +231,7 @@ static int CancelAlarm(const std::vector<std::string>& params)
  */
 static int ClearProperty(const std::vector<std::string>& params)
 {
-  CGUIWindow *window = g_windowManager.GetWindow(params.size() > 1 ? CButtonTranslator::TranslateWindow(params[1]) : g_windowManager.GetFocusedWindow());
+  CGUIWindow *window = CServiceBroker::GetGUI()->GetWindowManager().GetWindow(params.size() > 1 ? CWindowTranslator::TranslateWindow(params[1]) : CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindowOrDialog());
   if (window)
     window->SetProperty(params[0],"");
 
@@ -246,14 +250,14 @@ static int CloseDialog(const std::vector<std::string>& params)
     bForce = true;
   if (StringUtils::EqualsNoCase(params[0], "all"))
   {
-    g_windowManager.CloseDialogs(bForce);
+    CServiceBroker::GetGUI()->GetWindowManager().CloseDialogs(bForce);
   }
   else
   {
-    int id = CButtonTranslator::TranslateWindow(params[0]);
-    CGUIWindow *window = (CGUIWindow *)g_windowManager.GetWindow(id);
+    int id = CWindowTranslator::TranslateWindow(params[0]);
+    CGUIWindow *window = CServiceBroker::GetGUI()->GetWindowManager().GetWindow(id);
     if (window && window->IsDialog())
-      ((CGUIDialog *)window)->Close(bForce);
+      static_cast<CGUIDialog*>(window)->Close(bForce);
   }
 
   return 0;
@@ -360,7 +364,7 @@ static int SetResolution(const std::vector<std::string>& params)
   else if (paramlow == "1080psbs") res = RES_HDTV_1080pSBS;
   else if (paramlow == "1080ptb") res = RES_HDTV_1080pTB;
   else if (paramlow == "1080i") res = RES_HDTV_1080i;
-  if (g_graphicsContext.IsValidResolution(res))
+  if (CServiceBroker::GetWinSystem()->GetGfxContext().IsValidResolution(res))
   {
     CDisplaySettings::GetInstance().SetCurrentResolution(res, true);
     g_application.ReloadSkin();
@@ -377,7 +381,7 @@ static int SetResolution(const std::vector<std::string>& params)
  */
 static int SetProperty(const std::vector<std::string>& params)
 {
-  CGUIWindow *window = g_windowManager.GetWindow(params.size() > 2 ? CButtonTranslator::TranslateWindow(params[2]) : g_windowManager.GetFocusedWindow());
+  CGUIWindow *window = CServiceBroker::GetGUI()->GetWindowManager().GetWindow(params.size() > 2 ? CWindowTranslator::TranslateWindow(params[2]) : CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindowOrDialog());
   if (window)
     window->SetProperty(params[0],params[1]);
 
@@ -390,7 +394,7 @@ static int SetProperty(const std::vector<std::string>& params)
  */
 static int SetStereoMode(const std::vector<std::string>& params)
 {
-  CAction action = CStereoscopicsManager::GetInstance().ConvertActionCommandToAction("SetStereoMode", params[0]);
+  CAction action = CStereoscopicsManager::ConvertActionCommandToAction("SetStereoMode", params[0]);
   if (action.GetID() != ACTION_NONE)
     CApplicationMessenger::GetInstance().SendMsg(TMSG_GUI_ACTION, WINDOW_INVALID, -1, static_cast<void*>(new CAction(action)));
   else

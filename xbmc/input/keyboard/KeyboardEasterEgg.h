@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2016 Team Kodi
+ *      Copyright (C) 2016-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -19,29 +19,32 @@
  */
 #pragma once
 
-#include "IKeyboardHandler.h"
+#include "input/keyboard/interfaces/IKeyboardDriverHandler.h"
 #include "input/XBMC_vkeys.h"
 
 #include <vector>
 
+namespace KODI
+{
 namespace KEYBOARD
 {
   /*!
    * \brief Hush!!!
    */
-  class CKeyboardEasterEgg : public IKeyboardHandler
+  class CKeyboardEasterEgg : public IKeyboardDriverHandler
   {
   public:
     CKeyboardEasterEgg(void);
-    virtual ~CKeyboardEasterEgg() = default;
+    ~CKeyboardEasterEgg() override = default;
 
-    // implementation of IKeyboardHandler
-    virtual bool OnKeyPress(const CKey& key);
-    virtual void OnKeyRelease(const CKey& key) { }
+    // implementation of IKeyboardDriverHandler
+    bool OnKeyPress(const CKey& key) override;
+    void OnKeyRelease(const CKey& key) override { }
 
   private:
     static std::vector<XBMCVKey> m_sequence;
 
     unsigned int m_state;
   };
+}
 }

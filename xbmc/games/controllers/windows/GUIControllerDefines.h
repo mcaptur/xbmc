@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2014-2016 Team Kodi
+ *      Copyright (C) 2014-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -40,7 +40,7 @@
 #define CONTROL_GAME_CONTROLLER             31
 
 #define MAX_CONTROLLER_COUNT  100 // large enough
-#define MAX_FEATURE_COUNT     100 // large enough
+#define MAX_FEATURE_COUNT     200 // large enough
 
 #define CONTROL_CONTROLLER_BUTTONS_START  100
 #define CONTROL_CONTROLLER_BUTTONS_END    (CONTROL_CONTROLLER_BUTTONS_START + MAX_CONTROLLER_COUNT)

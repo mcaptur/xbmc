@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2016 Team Kodi
+ *      Copyright (C) 2016-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -24,21 +24,24 @@
 
 #include <string>
 
+namespace KODI
+{
 namespace GAME
 {
   class CGUIFeatureGroupTitle : public CGUILabelControl
   {
   public:
-    CGUIFeatureGroupTitle(const CGUILabelControl& groupTitleTemplate, const std::string& groupName, unsigned int featureIndex);
+    CGUIFeatureGroupTitle(const CGUILabelControl& groupTitleTemplate, const std::string& groupName, unsigned int buttonIndex);
 
-    virtual ~CGUIFeatureGroupTitle(void) { }
+    virtual ~CGUIFeatureGroupTitle() = default;
   };
 
   class CGUIFeatureSeparator : public CGUIImage
   {
   public:
-    CGUIFeatureSeparator(const CGUIImage& separatorTemplate, unsigned int featureIndex);
+    CGUIFeatureSeparator(const CGUIImage& separatorTemplate, unsigned int buttonIndex);
 
-    virtual ~CGUIFeatureSeparator(void) { }
+    virtual ~CGUIFeatureSeparator() = default;
   };
+}
 }

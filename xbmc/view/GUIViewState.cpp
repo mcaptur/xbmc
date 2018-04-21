@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -36,7 +36,9 @@
 #include "ViewDatabase.h"
 #include "AutoSwitch.h"
 #include "dialogs/GUIDialogSelect.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
+#include "guilib/LocalizeStrings.h"
 #include "addons/Addon.h"
 #include "addons/AddonManager.h"
 #include "addons/PluginSource.h"
@@ -51,6 +53,7 @@
 #define PROPERTY_SORT_ORDER         "sort.order"
 #define PROPERTY_SORT_ASCENDING     "sort.ascending"
 
+using namespace KODI;
 using namespace ADDON;
 using namespace PVR;
 
@@ -63,7 +66,7 @@ CGUIViewState* CGUIViewState::GetViewState(int windowId, const CFileItemList& it
   m_sources.clear();
 
   if (windowId == 0)
-    return GetViewState(g_windowManager.GetActiveWindow(),items);
+    return GetViewState(CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow(),items);
 
   const CURL url=items.GetURL();
 
@@ -188,8 +191,7 @@ CGUIViewState::CGUIViewState(const CFileItemList& items) : m_items(items)
   m_playlist = PLAYLIST_NONE;
 }
 
-CGUIViewState::~CGUIViewState()
-{ }
+CGUIViewState::~CGUIViewState() = default;
 
 SortOrder CGUIViewState::SetNextSortOrder()
 {
@@ -347,7 +349,7 @@ void CGUIViewState::SetSortMethod(SortDescription sortDescription)
 bool CGUIViewState::ChooseSortMethod()
 {
   
-  CGUIDialogSelect *dialog = static_cast<CGUIDialogSelect *>(g_windowManager.GetWindow(WINDOW_DIALOG_SELECT));
+  CGUIDialogSelect *dialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogSelect>(WINDOW_DIALOG_SELECT);
   if (!dialog)
     return false;
   dialog->Reset();
@@ -392,7 +394,9 @@ bool CGUIViewState::HideParentDirItems()
 
 bool CGUIViewState::DisableAddSourceButtons()
 {
-  if (CProfilesManager::GetInstance().GetCurrentProfile().canWriteSources() || g_passwordManager.bMasterUser)
+  const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+
+  if (profileManager.GetCurrentProfile().canWriteSources() || g_passwordManager.bMasterUser)
     return !CServiceBroker::GetSettings().GetBool(CSettings::SETTING_FILELISTS_SHOWADDSOURCEBUTTONS);
 
   return true;
@@ -416,7 +420,7 @@ void CGUIViewState::SetPlaylistDirectory(const std::string& strDirectory)
 
 bool CGUIViewState::IsCurrentPlaylistDirectory(const std::string& strDirectory)
 {
-  if (g_playlistPlayer.GetCurrentPlaylist()!=GetPlaylist())
+  if (CServiceBroker::GetPlaylistPlayer().GetCurrentPlaylist()!=GetPlaylist())
     return false;
 
   std::string strDir = strDirectory;
@@ -456,7 +460,7 @@ void CGUIViewState::AddAddonsSource(const std::string &content, const std::strin
     CMediaSource source;
     source.strPath = "addons://sources/" + content + "/";    
     source.strName = label;
-    if (!thumb.empty() && g_TextureManager.HasTexture(thumb))
+    if (!thumb.empty() && CServiceBroker::GetGUI()->GetTextureManager().HasTexture(thumb))
       source.m_strThumbnailImage = thumb;
     source.m_iDriveType = CMediaSource::SOURCE_TYPE_LOCAL;
     source.m_ignore = true;
@@ -570,7 +574,7 @@ CGUIViewStateFromItems::CGUIViewStateFromItems(const CFileItemList &items) : CGU
   {
     CURL url(items.GetPath());
     AddonPtr addon;
-    if (CAddonMgr::GetInstance().GetAddon(url.GetHostName(), addon, ADDON_PLUGIN))
+    if (CServiceBroker::GetAddonMgr().GetAddon(url.GetHostName(), addon, ADDON_PLUGIN))
     {
       PluginPtr plugin = std::static_pointer_cast<CPluginSource>(addon);
       if (plugin->Provides(CPluginSource::AUDIO))
@@ -580,12 +584,12 @@ CGUIViewStateFromItems::CGUIViewStateFromItems(const CFileItemList &items) : CGU
     }
   }
 
-  LoadViewState(items.GetPath(), g_windowManager.GetActiveWindow());
+  LoadViewState(items.GetPath(), CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow());
 }
 
 void CGUIViewStateFromItems::SaveViewState()
 {
-  SaveViewToDb(m_items.GetPath(), g_windowManager.GetActiveWindow());
+  SaveViewToDb(m_items.GetPath(), CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow());
 }
 
 CGUIViewStateLibrary::CGUIViewStateLibrary(const CFileItemList &items) : CGUIViewState(items)
@@ -595,10 +599,10 @@ CGUIViewStateLibrary::CGUIViewStateLibrary(const CFileItemList &items) : CGUIVie
 
   SetViewAsControl(DEFAULT_VIEW_LIST);
 
-  LoadViewState(items.GetPath(), g_windowManager.GetActiveWindow());
+  LoadViewState(items.GetPath(), CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow());
 }
 
 void CGUIViewStateLibrary::SaveViewState()
 {
-  SaveViewToDb(m_items.GetPath(), g_windowManager.GetActiveWindow());
+  SaveViewToDb(m_items.GetPath(), CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow());
 }

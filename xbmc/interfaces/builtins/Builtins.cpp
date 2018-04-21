@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@
 #endif
 
 #if defined(TARGET_POSIX)
-#include "linux/PlatformDefs.h"
+#include "platform/linux/PlatformDefs.h"
 #endif
 
 CBuiltins::CBuiltins()
@@ -77,9 +77,7 @@ CBuiltins::CBuiltins()
 #endif
 }
 
-CBuiltins::~CBuiltins()
-{
-}
+CBuiltins::~CBuiltins() = default;
 
 CBuiltins& CBuiltins::GetInstance()
 {
@@ -94,7 +92,7 @@ bool CBuiltins::HasCommand(const std::string& execString)
   CUtil::SplitExecFunction(execString, function, parameters);
   StringUtils::ToLower(function);
 
-  if (CInputManager::GetInstance().HasBuiltin(function))
+  if (CServiceBroker::GetInputManager().HasBuiltin(function))
     return true;
 
   const auto& it = m_command.find(function);
@@ -168,11 +166,11 @@ int CBuiltins::Execute(const std::string& execString)
       return it->second.Execute(params);
     else
     {
-      CLog::Log(LOGERROR, "%s called with invalid number of parameters (should be: %" PRIdS ", is %" PRIdS")",
+      CLog::Log(LOGERROR, "{0} called with invalid number of parameters (should be: {1}, is {2})",
                           execute.c_str(), it->second.parameters, params.size());
       return -1;
     }
   } 
   else
-    return CInputManager::GetInstance().ExecuteBuiltin(execute, params);
+    return CServiceBroker::GetInputManager().ExecuteBuiltin(execute, params);
 }

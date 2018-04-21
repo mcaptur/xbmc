@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,11 +22,6 @@
 
 #include <string>
 #include <vector>
-#include "cores/VideoPlayer/VideoRenderers/RenderFormats.h"
-
-// 0x100000 is the video starting range
-
-// 0x200000 is the audio starting range
 
 // special options that can be passed to a codec
 class CDVDCodecOption
@@ -41,6 +36,4 @@ class CDVDCodecOptions
 {
 public:
   std::vector<CDVDCodecOption> m_keys;
-  std::vector<ERenderFormat> m_formats;
-  const void *m_opaque_pointer;
 };

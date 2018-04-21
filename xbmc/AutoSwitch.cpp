@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #include "AutoSwitch.h"
 #include "FileItem.h"
 #include "ServiceBroker.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/WindowIDs.h"
 #include "settings/Settings.h"
@@ -32,11 +33,9 @@
 #define METHOD_BYFILECOUNT 3
 #define METHOD_BYFOLDERTHUMBS 4
 
-CAutoSwitch::CAutoSwitch(void)
-{}
+CAutoSwitch::CAutoSwitch(void) = default;
 
-CAutoSwitch::~CAutoSwitch(void)
-{}
+CAutoSwitch::~CAutoSwitch(void) = default;
 
 /// \brief Generic function to add a layer of transparency to the calling window
 /// \param vecItems Vector of FileItems passed from the calling window
@@ -44,7 +43,7 @@ int CAutoSwitch::GetView(const CFileItemList &vecItems)
 {
   int iSortMethod = -1;
   int iPercent = 0;
-  int iCurrentWindow = g_windowManager.GetActiveWindow();
+  int iCurrentWindow = CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow();
   bool bHideParentFolderItems = !CServiceBroker::GetSettings().GetBool(CSettings::SETTING_FILELISTS_SHOWPARENTDIRITEMS);
 
   switch (iCurrentWindow)
@@ -130,7 +129,7 @@ bool CAutoSwitch::ByFiles(bool bHideParentDirItems, const CFileItemList& vecItem
   bool bThumbs = false;
   int iCompare = 0;
 
-  // parent directorys are visible, incrememt
+  // parent directorys are visible, increment
   if (!bHideParentDirItems)
   {
     iCompare = 1;

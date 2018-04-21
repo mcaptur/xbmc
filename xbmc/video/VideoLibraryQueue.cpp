@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2014 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,6 +22,8 @@
 
 #include <utility>
 
+#include "ServiceBroker.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "GUIUserMessages.h"
 #include "threads/SingleLock.h"
@@ -30,6 +32,7 @@
 #include "video/jobs/VideoLibraryJob.h"
 #include "video/jobs/VideoLibraryMarkWatchedJob.h"
 #include "video/jobs/VideoLibraryRefreshingJob.h"
+#include "video/jobs/VideoLibraryResetResumePointJob.h"
 #include "video/jobs/VideoLibraryScanningJob.h"
 
 CVideoLibraryQueue::CVideoLibraryQueue()
@@ -153,6 +156,14 @@ void CVideoLibraryQueue::MarkAsWatched(const CFileItemPtr &item, bool watched)
   AddJob(new CVideoLibraryMarkWatchedJob(item, watched));
 }
 
+void CVideoLibraryQueue::ResetResumePoint(const CFileItemPtr item)
+{
+  if (item == nullptr)
+    return;
+
+  AddJob(new CVideoLibraryResetResumePointJob(item));
+}
+
 void CVideoLibraryQueue::AddJob(CVideoLibraryJob *job)
 {
   if (job == NULL)
@@ -218,7 +229,7 @@ void CVideoLibraryQueue::Refresh()
 {
   CUtil::DeleteVideoDatabaseDirectoryCache();
   CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE);
-  g_windowManager.SendThreadMessage(msg);
+  CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
 }
 
 void CVideoLibraryQueue::OnJobComplete(unsigned int jobID, bool success, CJob *job)

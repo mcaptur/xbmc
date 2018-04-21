@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -128,8 +128,7 @@ bool CDatabaseQueryRule::Load(const TiXmlNode *node, const std::string &encoding
 
 bool CDatabaseQueryRule::Load(const CVariant &obj)
 {
-  if (!obj.isObject() ||
-      !obj.isMember("field") || !obj["field"].isString() ||
+  if (!obj.isMember("field") || !obj["field"].isString() ||
       !obj.isMember("operator") || !obj["operator"].isString())
     return false;
 

@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2016 Team Kodi
+ *      Copyright (C) 2016-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -19,14 +19,19 @@
  */
 
 #include "DeadzoneFilter.h"
-#include "DefaultJoystick.h"
-#include "IButtonMap.h"
+#include "JoystickIDs.h"
+#include "games/controllers/ControllerIDs.h"
+#include "input/joysticks/interfaces/IButtonMap.h"
 #include "peripherals/devices/Peripheral.h"
 #include "utils/log.h"
 
+#include <cmath>
 #include <vector>
 
+using namespace KODI;
 using namespace JOYSTICK;
+
+#define AXIS_EPSILON  0.01f // Allowed noise for detecting discrete D-pads (value of 0.007 when centered has been observed)
 
 // Settings for analog sticks
 #define SETTING_LEFT_STICK_DEADZONE   "left_stick_deadzone"
@@ -49,6 +54,10 @@ float CDeadzoneFilter::FilterAxis(unsigned int axisIndex, float axisValue)
 
   if (bSuccess)
     return ApplyDeadzone(axisValue, deadzone);
+
+  // Always filter noise about the center
+  if (std::abs(axisValue) < AXIS_EPSILON)
+    axisValue = 0.0f;
 
   return axisValue;
 }

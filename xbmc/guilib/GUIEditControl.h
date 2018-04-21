@@ -3,14 +3,11 @@
 \brief
 */
 
-#ifndef GUILIB_GUIEditControl_H
-#define GUILIB_GUIEditControl_H
-
 #pragma once
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -59,19 +56,19 @@ public:
   CGUIEditControl(int parentID, int controlID, float posX, float posY,
                   float width, float height, const CTextureInfo &textureFocus, const CTextureInfo &textureNoFocus,
                   const CLabelInfo& labelInfo, const std::string &text);
-  CGUIEditControl(const CGUIButtonControl &button);
-  virtual ~CGUIEditControl(void);
-  virtual CGUIEditControl *Clone() const { return new CGUIEditControl(*this); };
+  explicit CGUIEditControl(const CGUIButtonControl &button);
+  ~CGUIEditControl(void) override;
+  CGUIEditControl *Clone() const override { return new CGUIEditControl(*this); };
 
-  virtual bool OnMessage(CGUIMessage &message);
-  virtual bool OnAction(const CAction &action);
-  virtual void OnClick();
+  bool OnMessage(CGUIMessage &message) override;
+  bool OnAction(const CAction &action) override;
+  void OnClick() override;
 
-  virtual void SetLabel(const std::string &text);
-  virtual void SetLabel2(const std::string &text);
-  void SetHint(const CGUIInfoLabel& hint);
+  void SetLabel(const std::string &text) override;
+  void SetLabel2(const std::string &text) override;
+  void SetHint(const KODI::GUILIB::GUIINFO::CGUIInfoLabel& hint);
 
-  virtual std::string GetLabel2() const;
+  std::string GetLabel2() const override;
 
   unsigned int GetCursorPosition() const;
   void SetCursorPosition(unsigned int iPosition);
@@ -86,12 +83,12 @@ public:
   virtual void SetInputValidation(StringValidation::Validator inputValidator, void *data = NULL);
 
 protected:
-  virtual void SetFocus(bool focus);
-  virtual void ProcessText(unsigned int currentTime);
-  virtual void RenderText();
-  virtual CGUILabel::COLOR GetTextColor() const;
+  void SetFocus(bool focus) override;
+  void ProcessText(unsigned int currentTime) override;
+  void RenderText() override;
+  CGUILabel::COLOR GetTextColor() const override;
   std::wstring GetDisplayedText() const;
-  std::string GetDescriptionByIndex(int index) const;
+  std::string GetDescriptionByIndex(int index) const override;
   bool SetStyledText(const std::wstring &text);
   void RecalcLabelPosition();
   void ValidateCursor();
@@ -110,7 +107,7 @@ protected:
   
   std::wstring m_text2;
   std::string  m_text;
-  CGUIInfoLabel m_hintInfo;
+  KODI::GUILIB::GUIINFO::CGUIInfoLabel m_hintInfo;
   float m_textOffset;
   float m_textWidth;
   CRect m_clipRect; ///< clipping rect for the second label
@@ -141,4 +138,3 @@ protected:
   static const char*        smsLetters[10];
   static const unsigned int smsDelay;
 };
-#endif

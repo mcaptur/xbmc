@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2016 Team Kodi
+ *      Copyright (C) 2016-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -21,11 +21,14 @@
 
 #include "addons/kodi-addon-dev-kit/include/kodi/kodi_game_types.h"
 #include "cores/AudioEngine/Utils/AEChannelData.h"
-#include "input/Key.h"
+#include "games/controllers/ControllerTypes.h"
+#include "input/keyboard/KeyboardTypes.h"
 
 #include "libavcodec/avcodec.h"
 #include "libavutil/pixfmt.h"
 
+namespace KODI
+{
 namespace GAME
 {
   /*!
@@ -45,6 +48,13 @@ namespace GAME
      * \return Translated error.
      */
     static const char* ToString(GAME_ERROR error);
+
+    /*!
+     * \brief Translates game memory types to string representation (e.g. for logging).
+     * \param memory The memory type to translate.
+     * \return Translated memory type.
+     */
+    static const char* ToString(GAME_MEMORY error);
 
     /*!
      * \brief Translate pixel format (Game API to FFMPEG).
@@ -86,7 +96,7 @@ namespace GAME
      * \param modifiers The key modifiers to translate (e.g. Shift, Ctrl).
      * \return Translated key modifiers.
      */
-    static GAME_KEY_MOD  GetModifiers(CKey::Modifier modifier);
+    static GAME_KEY_MOD GetModifiers(KEYBOARD::Modifier modifier);
 
     /*!
      * \brief Translate region to string representation (e.g. for logging).
@@ -94,5 +104,13 @@ namespace GAME
      * \return Translated region.
      */
     static const char* TranslateRegion(GAME_REGION region);
+
+    /*!
+     * \brief Translate port type (Game API to Kodi)
+     * \param portType  The port type to translate
+     * \return Translated port type
+     */
+    static PORT_TYPE TranslatePortType(GAME_PORT_TYPE portType);
   };
+}
 }

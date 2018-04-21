@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2014 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@
 #include "settings/AdvancedSettings.h"
 
 #if !defined(TARGET_WINDOWS)
-#include "linux/ConvUtils.h" //GetLastError()
+#include "platform/linux/ConvUtils.h"
 #endif
 
 #include <cassert>
@@ -38,12 +38,12 @@
 #include <memory>
 
 #ifdef TARGET_POSIX
-#include "linux/ConvUtils.h"
+#include "platform/linux/ConvUtils.h"
 #endif
 
 using namespace XFILE;
 
-#define READ_CACHE_CHUNK_SIZE (64*1024)
+#define READ_CACHE_CHUNK_SIZE (128*1024)
 
 class CWriteRate
 {
@@ -146,7 +146,7 @@ void CFileCache::SetCacheStrategy(CCacheStrategy *pCache, bool bDeleteCache /* =
 
 IFile *CFileCache::GetFileImp()
 {
-  return m_source.GetImplemenation();
+  return m_source.GetImplementation();
 }
 
 bool CFileCache::Open(const CURL& url)
@@ -517,7 +517,7 @@ int64_t CFileCache::Seek(int64_t iFilePosition, int iWhence)
       return -1;
     }
 
-    /* wait for any remainin data */
+    /* wait for any remaining data */
     if(m_seekPos < iTarget)
     {
       CLog::Log(LOGDEBUG,"%s - waiting for position %" PRId64".", __FUNCTION__, iTarget);
@@ -534,7 +534,7 @@ int64_t CFileCache::Seek(int64_t iFilePosition, int iWhence)
   else
     m_readPos = iTarget;
 
-  return m_nSeekResult;
+  return iTarget;
 }
 
 void CFileCache::Close()
@@ -566,21 +566,12 @@ void CFileCache::StopThread(bool bWait /*= true*/)
   CThread::StopThread(bWait);
 }
 
-std::string CFileCache::GetContent()
+const std::string CFileCache::GetProperty(XFILE::FileProperty type, const std::string &name) const
 {
-  if (!m_source.GetImplemenation())
-    return IFile::GetContent();
+  if (!m_source.GetImplementation())
+    return IFile::GetProperty(type, name);
 
-  return m_source.GetImplemenation()->GetContent();
-}
-
-std::string CFileCache::GetContentCharset(void)
-{
-  IFile* impl = m_source.GetImplemenation();
-  if (!impl)
-    return IFile::GetContentCharset();
-
-  return impl->GetContentCharset();
+  return m_source.GetImplementation()->GetProperty(type, name);
 }
 
 int CFileCache::IoControl(EIoControl request, void* param)

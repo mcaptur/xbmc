@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2016 Team Kodi
+ *      Copyright (C) 2016-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -24,7 +24,10 @@
 
 #include <cmath>
 
+using namespace KODI;
 using namespace GAME;
+
+const unsigned int CGameClientTiming::MAX_CORRECTION_FACTOR_PERCENT = 7;
 
 void CGameClientTiming::Reset()
 {

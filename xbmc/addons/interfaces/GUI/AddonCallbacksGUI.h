@@ -33,10 +33,10 @@ namespace KodiAPI
 namespace GUI
 {
 
-class CAddonCallbacksGUI : public ADDON::IAddonInterface
+class CAddonCallbacksGUI
 {
 public:
-  CAddonCallbacksGUI(ADDON::CAddon* addon);
+  explicit CAddonCallbacksGUI(ADDON::CAddon* addon);
   virtual ~CAddonCallbacksGUI();
 
   /**! \name General Functions */
@@ -175,6 +175,7 @@ public:
   static int          Dialog_Select(const char *heading, const char *entries[], unsigned int size, int selected);
 
 private:
+  ADDON::CAddon* m_addon; /*!< the addon */
   CB_GUILib    *m_callbacks;
 };
 

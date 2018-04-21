@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@
 #include <string>
 #include <vector>
 
-#include "system.h"
 #include "ProfilesManager.h"
 #include "Application.h"
 #include "DatabaseManager.h"
@@ -32,17 +31,19 @@
 #include "ServiceBroker.h"
 #include "Util.h"
 #include "addons/Skin.h"
-#include "dialogs/GUIDialogOK.h"
 #include "dialogs/GUIDialogYesNo.h"
+#include "events/EventLog.h"
+#include "events/EventLogManager.h"
 #include "filesystem/Directory.h"
 #include "filesystem/DirectoryCache.h"
 #include "filesystem/File.h"
 #include "filesystem/SpecialProtocol.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
-#include "input/ButtonTranslator.h"
 #include "input/InputManager.h"
 #include "settings/Settings.h"
+#include "settings/lib/SettingsManager.h"
 #if !defined(TARGET_WINDOWS) && defined(HAS_DVD_DRIVE)
 #include "storage/DetectDVDType.h"
 #endif
@@ -71,32 +72,42 @@ using namespace XFILE;
 
 static CProfile EmptyProfile;
 
-CProfilesManager::CProfilesManager()
-  : m_usingLoginScreen(false),
+CProfilesManager::CProfilesManager(CSettings &settings) :
+    m_settings(settings),
+    m_usingLoginScreen(false),
     m_profileLoadedForLogin(false),
     m_autoLoginProfile(-1),
     m_lastUsedProfile(0),
     m_currentProfile(0),
-    m_nextProfileId(0)
-{ }
+    m_nextProfileId(0),
+    m_eventLogs(new CEventLogManager)
+{
+  if (m_settings.IsLoaded())
+    OnSettingsLoaded();
+
+  m_settings.GetSettingsManager()->RegisterSettingsHandler(this);
+
+  std::set<std::string> settingSet = {
+    CSettings::SETTING_EVENTLOG_SHOW
+  };
+
+  m_settings.GetSettingsManager()->RegisterCallback(this, settingSet);
+}
 
 CProfilesManager::~CProfilesManager()
-{ }
-
-CProfilesManager& CProfilesManager::GetInstance()
 {
-  static CProfilesManager sProfilesManager;
-  return sProfilesManager;
+  m_settings.GetSettingsManager()->UnregisterCallback(this);
+  m_settings.GetSettingsManager()->UnregisterSettingsHandler(this);
 }
 
 void CProfilesManager::OnSettingsLoaded()
 {
   // check them all
-  std::string strDir = CServiceBroker::GetSettings().GetString(CSettings::SETTING_SYSTEM_PLAYLISTSPATH);
+  std::string strDir = m_settings.GetString(CSettings::SETTING_SYSTEM_PLAYLISTSPATH);
   if (strDir == "set default" || strDir.empty())
   {
     strDir = "special://profile/playlists/";
-    CServiceBroker::GetSettings().SetString(CSettings::SETTING_SYSTEM_PLAYLISTSPATH, strDir.c_str());
+    m_settings.SetString(CSettings::SETTING_SYSTEM_PLAYLISTSPATH, strDir.c_str());
   }
 
   CDirectory::Create(strDir);
@@ -265,13 +276,19 @@ bool CProfilesManager::LoadProfile(size_t index)
 
   CreateProfileFolders();
 
-  CDatabaseManager::GetInstance().Initialize();
-  CButtonTranslator::GetInstance().Load(true);
+  CServiceBroker::GetDatabaseManager().Initialize();
+  CServiceBroker::GetInputManager().LoadKeymaps();
 
-  CInputManager::GetInstance().SetMouseEnabled(CServiceBroker::GetSettings().GetBool(CSettings::SETTING_INPUT_ENABLEMOUSE));
+  CServiceBroker::GetInputManager().SetMouseEnabled(CServiceBroker::GetSettings().GetBool(CSettings::SETTING_INPUT_ENABLEMOUSE));
 
-  g_infoManager.ResetCache();
-  g_infoManager.ResetLibraryBools();
+  CGUIComponent* gui = CServiceBroker::GetGUI();
+  if (gui)
+  {
+    CGUIInfoManager& infoMgr = gui->GetInfoManager();
+    infoMgr.ResetCache();
+    infoMgr.GetInfoProviders().GetGUIControlsInfoProvider().ResetContainerMovingCache();
+    infoMgr.GetInfoProviders().GetLibraryInfoProvider().ResetLibraryBools();
+  }
 
   if (m_currentProfile != 0)
   {
@@ -292,7 +309,7 @@ bool CProfilesManager::LoadProfile(size_t index)
 
   // init windows
   CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_WINDOW_RESET);
-  g_windowManager.SendMessage(msg);
+  CServiceBroker::GetGUI()->GetWindowManager().SendMessage(msg);
 
   CUtil::DeleteDirectoryCache();
   g_directoryCache.Clear();
@@ -307,7 +324,7 @@ bool CProfilesManager::DeleteProfile(size_t index)
   if (profile == NULL)
     return false;
 
-  CGUIDialogYesNo* dlgYesNo = (CGUIDialogYesNo*)g_windowManager.GetWindow(WINDOW_DIALOG_YES_NO);
+  CGUIDialogYesNo* dlgYesNo = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogYesNo>(WINDOW_DIALOG_YES_NO);
   if (dlgYesNo == NULL)
     return false;
 
@@ -333,14 +350,17 @@ bool CProfilesManager::DeleteProfile(size_t index)
   if (index == m_currentProfile)
   {
     LoadProfile(0);
-    CServiceBroker::GetSettings().Save();
+    m_settings.Save();
   }
 
   CFileItemPtr item = CFileItemPtr(new CFileItem(URIUtils::AddFileToFolder(GetUserDataFolder(), strDirectory)));
   item->SetPath(URIUtils::AddFileToFolder(GetUserDataFolder(), strDirectory + "/"));
   item->m_bIsFolder = true;
   item->Select(true);
-  CFileUtils::DeleteItem(item);
+
+  CGUIComponent *gui = CServiceBroker::GetGUI();
+  if (gui && gui->ConfirmDelete(item->GetPath()))
+    CFileUtils::DeleteItem(item);
 
   return Save();
 }
@@ -379,7 +399,7 @@ const CProfile& CProfilesManager::GetCurrentProfile() const
   if (m_currentProfile < m_profiles.size())
     return m_profiles[m_currentProfile];
 
-  CLog::Log(LOGERROR, "CProfilesManager: current profile index (%u) is outside of the valid range (%" PRIdS ")", m_currentProfile, m_profiles.size());
+  CLog::Log(LOGERROR, "CProfilesManager: current profile index ({0}) is outside of the valid range ({1})", m_currentProfile, m_profiles.size());
   return EmptyProfile;
 }
 
@@ -536,6 +556,21 @@ std::string CProfilesManager::GetUserDataItem(const std::string& strFile) const
     path = "special://masterprofile/" + strFile;
 
   return path;
+}
+
+CEventLog& CProfilesManager::GetEventLog()
+{
+  return m_eventLogs->GetEventLog(GetCurrentProfileId());
+}
+
+void CProfilesManager::OnSettingAction(std::shared_ptr<const CSetting> setting)
+{
+  if (setting == nullptr)
+    return;
+
+  const std::string& settingId = setting->GetId();
+  if (settingId == CSettings::SETTING_EVENTLOG_SHOW)
+    GetEventLog().ShowFullEventLog();
 }
 
 void CProfilesManager::SetCurrentProfileId(size_t profileId)

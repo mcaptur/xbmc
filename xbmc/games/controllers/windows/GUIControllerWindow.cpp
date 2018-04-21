@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2014-2016 Team Kodi
+ *      Copyright (C) 2014-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -26,23 +26,25 @@
 #include "addons/GUIWindowAddonBrowser.h"
 #include "addons/IAddon.h"
 #include "addons/AddonManager.h"
-#include "games/controllers/dialogs/GUIDialogButtonCapture.h"
+#include "games/controllers/dialogs/GUIDialogIgnoreInput.h"
 #include "guilib/GUIButtonControl.h"
 #include "guilib/GUIControl.h"
 #include "guilib/GUIMessage.h"
 #include "guilib/WindowIDs.h"
+#include "ServiceBroker.h"
 
 // To check for button mapping support
-#include "dialogs/GUIDialogOK.h"
+#include "messaging/helpers/DialogOKHelper.h"
 #include "peripherals/bus/virtual/PeripheralBusAddon.h"
 #include "peripherals/Peripherals.h"
 #include "utils/log.h"
 
 // To check for installable controllers
 #include "addons/AddonDatabase.h"
-#include "addons/AddonManager.h"
 
+using namespace KODI;
 using namespace GAME;
+using namespace KODI::MESSAGING;
 
 CGUIControllerWindow::CGUIControllerWindow(void) :
   CGUIDialog(WINDOW_DIALOG_GAME_CONTROLLERS, "DialogGameControllers.xml"),
@@ -99,12 +101,6 @@ bool CGUIControllerWindow::OnMessage(CGUIMessage& message)
 
   switch (message.GetMessage())
   {
-    case GUI_MSG_WINDOW_INIT:
-    {
-      //! @todo Process params here, don't just record them for later
-      m_param = message.GetStringParam();
-      break;
-    }
     case GUI_MSG_CLICKED:
     {
       int controlId = message.GetSenderId();
@@ -204,13 +200,11 @@ void CGUIControllerWindow::OnEvent(const ADDON::CRepositoryUpdater::RepositoryUp
 
 void CGUIControllerWindow::OnInitWindow(void)
 {
-  using namespace PERIPHERALS;
-
   CGUIDialog::OnInitWindow();
 
   if (!m_featureList)
   {
-    m_featureList = new CGUIFeatureList(this, m_param);
+    m_featureList = new CGUIFeatureList(this);
     if (!m_featureList->Initialize())
     {
       delete m_featureList;
@@ -233,19 +227,13 @@ void CGUIControllerWindow::OnInitWindow(void)
   OnMessage(msgFocus);
 
   // Enable button mapping support
-  if (!g_peripherals.GetInstance().EnableButtonMapping())
-    CLog::Log(LOGDEBUG, "Joystick support not found");
-
-  // FIXME: not thread safe
-//  ADDON::CRepositoryUpdater::GetInstance().Events().Subscribe(this, &CGUIControllerWindow::OnEvent);
+  CServiceBroker::GetPeripherals().EnableButtonMapping();
 
   UpdateButtons();
 }
 
 void CGUIControllerWindow::OnDeinitWindow(int nextWindowID)
 {
-  ADDON::CRepositoryUpdater::GetInstance().Events().Unsubscribe(this);
-
   if (m_controllerList)
   {
     m_controllerList->Deinitialize();
@@ -275,16 +263,16 @@ void CGUIControllerWindow::OnControllerSelected(unsigned int controllerIndex)
     m_controllerList->OnSelect(controllerIndex);
 }
 
-void CGUIControllerWindow::OnFeatureFocused(unsigned int featureIndex)
+void CGUIControllerWindow::OnFeatureFocused(unsigned int buttonIndex)
 {
   if (m_featureList)
-    m_featureList->OnFocus(featureIndex);
+    m_featureList->OnFocus(buttonIndex);
 }
 
-void CGUIControllerWindow::OnFeatureSelected(unsigned int featureIndex)
+void CGUIControllerWindow::OnFeatureSelected(unsigned int buttonIndex)
 {
   if (m_featureList)
-    m_featureList->OnSelect(featureIndex);
+    m_featureList->OnSelect(buttonIndex);
 }
 
 void CGUIControllerWindow::UpdateButtons(void)
@@ -292,7 +280,7 @@ void CGUIControllerWindow::UpdateButtons(void)
   using namespace ADDON;
 
   VECADDONS addons;
-  CONTROL_ENABLE_ON_CONDITION(CONTROL_GET_MORE, CAddonMgr::GetInstance().GetInstallableAddons(addons, ADDON::ADDON_GAME_CONTROLLER) && !addons.empty());
+  CONTROL_ENABLE_ON_CONDITION(CONTROL_GET_MORE, CServiceBroker::GetAddonMgr().GetInstallableAddons(addons, ADDON::ADDON_GAME_CONTROLLER) && !addons.empty());
 }
 
 void CGUIControllerWindow::GetMoreControllers(void)
@@ -302,7 +290,7 @@ void CGUIControllerWindow::GetMoreControllers(void)
   {
     // "Controller profiles"
     // "All available controller profiles are installed."
-    CGUIDialogOK::ShowAndGetInput(CVariant{ 35050 }, CVariant{ 35062 });
+    HELPERS::ShowOKDialogText(CVariant{ 35050 }, CVariant{ 35062 });
     return;
   }
 }
@@ -317,11 +305,11 @@ void CGUIControllerWindow::ShowHelp(void)
 {
   // "Help"
   // <help text>
-  CGUIDialogOK::ShowAndGetInput(CVariant{10043}, CVariant{35055});
+  HELPERS::ShowOKDialogText(CVariant{10043}, CVariant{35055});
 }
 
 void CGUIControllerWindow::ShowButtonCaptureDialog(void)
 {
-  CGUIDialogButtonCapture dialog;
+  CGUIDialogIgnoreInput dialog;
   dialog.Show();
 }

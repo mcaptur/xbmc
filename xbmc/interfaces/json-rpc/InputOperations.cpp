@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
 #include "guilib/GUIWindow.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/GUIKeyboardFactory.h"
-#include "input/ButtonTranslator.h"
+#include "input/ActionTranslator.h"
 #include "input/Key.h"
 #include "utils/Variant.h"
 #include "input/XBMC_keyboard.h"
@@ -74,7 +74,7 @@ JSONRPC_STATUS CInputOperations::SendText(const std::string &method, ITransportL
   if (CGUIKeyboardFactory::SendTextToActiveKeyboard(parameterObject["text"].asString(), parameterObject["done"].asBoolean()))
     return ACK;
 
-  CGUIWindow *window = g_windowManager.GetWindow(g_windowManager.GetFocusedWindow());
+  CGUIWindow *window = CServiceBroker::GetGUI()->GetWindowManager().GetWindow(CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindowOrDialog());
   if (!window)
     return ACK;
 
@@ -88,8 +88,8 @@ JSONRPC_STATUS CInputOperations::SendText(const std::string &method, ITransportL
 
 JSONRPC_STATUS CInputOperations::ExecuteAction(const std::string &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
 {
-  int action;
-  if (!CButtonTranslator::TranslateActionString(parameterObject["action"].asString().c_str(), action))
+  unsigned int action;
+  if (!CActionTranslator::TranslateString(parameterObject["action"].asString(), action))
     return InvalidParams;
 
   return SendAction(action);

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -35,6 +35,7 @@
 #include "threads/SingleLock.h"
 #include "utils/URIUtils.h"
 #include "URL.h"
+#include "PasswordManager.h"
 
 using namespace XFILE;
 
@@ -63,7 +64,7 @@ private:
       , m_imp(imp)
     {}
   public:
-    virtual bool DoWork()
+    bool DoWork() override
     {
       m_result->m_list.SetURL(m_result->m_listDir);
       m_result->m_result         = m_imp->GetDirectory(m_result->m_dir, m_result->m_list);
@@ -83,6 +84,11 @@ public:
     m_id = CJobManager::GetInstance().AddJob(new CGetJob(imp, m_result)
                                            , NULL
                                            , CJob::PRIORITY_HIGH);
+    if (m_id == 0)
+    {
+      CGetJob job(imp, m_result);
+      job.DoWork();
+    }
   }
  ~CGetDirectory()
   {
@@ -116,11 +122,9 @@ public:
 };
 
 
-CDirectory::CDirectory()
-{}
+CDirectory::CDirectory() = default;
 
-CDirectory::~CDirectory()
-{}
+CDirectory::~CDirectory() = default;
 
 bool CDirectory::GetDirectory(const std::string& strPath, CFileItemList &items, const std::string &strMask /*=""*/, int flags /*=DIR_FLAG_DEFAULTS*/, bool allowThreads /* = false */)
 {
@@ -166,14 +170,21 @@ bool CDirectory::GetDirectory(const CURL& url, CFileItemList &items, const CHint
       pDirectory->SetFlags(hints.flags);
 
       bool result = false, cancel = false;
+      CURL authUrl = CURL(realURL);
+
       while (!result && !cancel)
       {
         const std::string pathToUrl(url.Get());
+
+        // don't change auth if it's set explicitly
+        if (CPasswordManager::GetInstance().IsURLSupported(authUrl) && authUrl.GetUserName().empty())
+          CPasswordManager::GetInstance().AuthenticateURL(authUrl);
+
         if (g_application.IsCurrentThread() && allowThreads && !URIUtils::IsSpecial(pathToUrl))
         {
-          CSingleExit ex(g_graphicsContext);
+          CSingleExit ex(CServiceBroker::GetWinSystem()->GetGfxContext());
 
-          CGetDirectory get(pDirectory, realURL, url);
+          CGetDirectory get(pDirectory, authUrl, url);
 
           if (!CGUIDialogBusy::WaitOnEvent(get.GetEvent(), TIME_TO_BUSY_DIALOG))
           {
@@ -186,15 +197,60 @@ bool CDirectory::GetDirectory(const CURL& url, CFileItemList &items, const CHint
         else
         {
           items.SetURL(url);
-          result = pDirectory->GetDirectory(realURL, items);
+          result = pDirectory->GetDirectory(authUrl, items);
         }
 
         if (!result)
         {
-          if (!cancel && g_application.IsCurrentThread() && pDirectory->ProcessRequirements())
-            continue;
+          if (!cancel)
+          {
+            if (g_application.IsCurrentThread() && pDirectory->ProcessRequirements())
+            {
+              authUrl.SetDomain("");
+              authUrl.SetUserName("");
+              authUrl.SetPassword("");
+              continue;
+            }
+          }
           CLog::Log(LOGERROR, "%s - Error getting %s", __FUNCTION__, url.GetRedacted().c_str());
           return false;
+        }
+      }
+
+      // hide credentials if necessary
+      if (CPasswordManager::GetInstance().IsURLSupported(realURL))
+      {
+        bool hide = false;
+        // for explicitly credentials 
+        if (!realURL.GetUserName().empty())
+        {
+          // credentials was changed i.e. were stored in the password
+          // manager, in this case we can hide them from an item URL,
+          // otherwise we have to keep credentials in an item URL
+          if ( realURL.GetUserName() != authUrl.GetUserName()
+            || realURL.GetPassWord() != authUrl.GetPassWord()
+            || realURL.GetDomain() != authUrl.GetDomain())
+          {
+            hide = true;
+          }
+        }
+        else
+        {
+          // hide credentials in any other cases
+          hide = true;
+        }
+
+        if (hide)
+        {
+          for (int i = 0; i < items.Size(); ++i)
+          {
+            CFileItemPtr item = items[i];
+            CURL itemUrl = item->GetURL();
+            itemUrl.SetDomain("");
+            itemUrl.SetUserName("");
+            itemUrl.SetPassword("");
+            item->SetPath(itemUrl.Get());
+          }
         }
       }
 
@@ -270,6 +326,10 @@ bool CDirectory::Create(const CURL& url)
   try
   {
     CURL realURL = URIUtils::SubstitutePath(url);
+
+    if (CPasswordManager::GetInstance().IsURLSupported(realURL) && realURL.GetUserName().empty())
+      CPasswordManager::GetInstance().AuthenticateURL(realURL);
+
     std::unique_ptr<IDirectory> pDirectory(CDirectoryFactory::Create(realURL));
     if (pDirectory.get())
       if(pDirectory->Create(realURL))
@@ -305,6 +365,10 @@ bool CDirectory::Exists(const CURL& url, bool bUseCache /* = true */)
       if (bPathInCache)
         return false;
     }
+
+    if (CPasswordManager::GetInstance().IsURLSupported(realURL) && realURL.GetUserName().empty())
+      CPasswordManager::GetInstance().AuthenticateURL(realURL);
+
     std::unique_ptr<IDirectory> pDirectory(CDirectoryFactory::Create(realURL));
     if (pDirectory.get())
       return pDirectory->Exists(realURL);
@@ -334,9 +398,13 @@ bool CDirectory::Remove(const CURL& url)
   try
   {
     CURL realURL = URIUtils::SubstitutePath(url);
+    CURL authUrl = realURL;
+    if (CPasswordManager::GetInstance().IsURLSupported(authUrl) && authUrl.GetUserName().empty())
+      CPasswordManager::GetInstance().AuthenticateURL(authUrl);
+
     std::unique_ptr<IDirectory> pDirectory(CDirectoryFactory::Create(realURL));
     if (pDirectory.get())
-      if(pDirectory->Remove(realURL))
+      if(pDirectory->Remove(authUrl))
       {
         g_directoryCache.ClearFile(realURL.Get());
         return true;
@@ -356,9 +424,13 @@ bool CDirectory::RemoveRecursive(const CURL& url)
   try
   {
     CURL realURL = URIUtils::SubstitutePath(url);
+    CURL authUrl = realURL;
+    if (CPasswordManager::GetInstance().IsURLSupported(authUrl) && authUrl.GetUserName().empty())
+      CPasswordManager::GetInstance().AuthenticateURL(authUrl);
+
     std::unique_ptr<IDirectory> pDirectory(CDirectoryFactory::Create(realURL));
     if (pDirectory.get())
-      if(pDirectory->RemoveRecursive(realURL))
+      if(pDirectory->RemoveRecursive(authUrl))
       {
         g_directoryCache.ClearFile(realURL.Get());
         return true;
@@ -373,12 +445,14 @@ bool CDirectory::RemoveRecursive(const CURL& url)
   return false;
 }
 
-void CDirectory::FilterFileDirectories(CFileItemList &items, const std::string &mask)
+void CDirectory::FilterFileDirectories(CFileItemList &items, const std::string &mask,
+                                       bool expandImages)
 {
   for (int i=0; i< items.Size(); ++i)
   {
     CFileItemPtr pItem=items[i];
-    if (!pItem->m_bIsFolder && pItem->IsFileFolder(EFILEFOLDER_TYPE_ALWAYS))
+    auto mode = expandImages ? EFILEFOLDER_TYPE_ONBROWSE : EFILEFOLDER_TYPE_ALWAYS;
+    if (!pItem->m_bIsFolder && pItem->IsFileFolder(mode))
     {
       std::unique_ptr<IFileDirectory> pDirectory(CFileDirectoryFactory::Create(pItem->GetURL(),pItem.get(),mask));
       if (pDirectory.get())

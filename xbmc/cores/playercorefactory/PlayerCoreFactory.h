@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,8 +22,6 @@
 
 #include <vector>
 
-#include "system.h"
-#include "cores/IPlayerCallback.h"
 #include "settings/lib/ISettingsHandler.h"
 #include "threads/CriticalSection.h"
 #include <string>
@@ -34,14 +32,21 @@ class TiXmlElement;
 class CFileItem;
 class CPlayerCoreConfig;
 class CPlayerSelectionRule;
+class CProfilesManager;
+class CSettings;
 class IPlayer;
+class IPlayerCallback;
 
 class CPlayerCoreFactory : public ISettingsHandler
 {
 public:
-  static CPlayerCoreFactory& GetInstance();
+  CPlayerCoreFactory(CSettings &settings,
+                     const CProfilesManager &profileManager);
+  CPlayerCoreFactory(const CPlayerCoreFactory&) = delete;
+  CPlayerCoreFactory& operator=(CPlayerCoreFactory const&) = delete;
+  ~CPlayerCoreFactory() override;
 
-  virtual void OnSettingsLoaded() override;
+  void OnSettingsLoaded() override;
 
   IPlayer* CreatePlayer(const std::string& nameId, IPlayerCallback& callback) const;
   void GetPlayers(const CFileItem& item, std::vector<std::string>&players) const;   //Players supporting the specified file
@@ -59,11 +64,11 @@ public:
   void OnPlayerDiscovered(const std::string& id, const std::string& name);
   void OnPlayerRemoved(const std::string& id);
 
-protected:
-  CPlayerCoreFactory();
-  CPlayerCoreFactory(const CPlayerCoreFactory&);
-  CPlayerCoreFactory& operator=(CPlayerCoreFactory const&);
-  virtual ~CPlayerCoreFactory();
+private:
+  // Construction parameters
+  CSettings &m_settings;
+  const CProfilesManager &m_profileManager;
+
   int GetPlayerIndex(const std::string& strCoreName) const;
   std::string GetPlayerName(size_t idx) const;
 

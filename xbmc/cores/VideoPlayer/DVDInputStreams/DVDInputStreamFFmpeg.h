@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -26,18 +26,18 @@ class CDVDInputStreamFFmpeg
   : public CDVDInputStream
 {
 public:
-  CDVDInputStreamFFmpeg(const CFileItem& fileitem);
-  virtual ~CDVDInputStreamFFmpeg();
-  virtual bool Open() override;
-  virtual void Close() override;
-  virtual int Read(uint8_t* buf, int buf_size) override;
-  virtual int64_t Seek(int64_t offset, int whence) override;
-  virtual bool Pause(double dTime) override { return false; };
-  virtual bool IsEOF() override;
-  virtual int64_t GetLength() override;
+  explicit CDVDInputStreamFFmpeg(const CFileItem& fileitem);
+  ~CDVDInputStreamFFmpeg() override;
+  bool Open() override;
+  void Close() override;
+  int Read(uint8_t* buf, int buf_size) override;
+  int64_t Seek(int64_t offset, int whence) override;
+  bool Pause(double dTime) override { return false; };
+  bool IsEOF() override;
+  int64_t GetLength() override;
   std::string GetFileName() override;
 
-  virtual void  Abort() override { m_aborted = true;  }
+  void  Abort() override { m_aborted = true;  }
   bool Aborted() { return m_aborted;  }
 
   const CFileItem& GetItem() const { return m_item; }

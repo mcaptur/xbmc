@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2010-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -133,9 +133,7 @@ bool CAEStreamInfo::operator==(const CAEStreamInfo& info) const
   return true;
 }
 
-CAEStreamParser::~CAEStreamParser()
-{
-}
+CAEStreamParser::~CAEStreamParser() = default;
 
 void CAEStreamParser::Reset()
 {
@@ -279,10 +277,10 @@ void CAEStreamParser::GetPacket(uint8_t **buffer, unsigned int *bufferSize)
 /* SYNC FUNCTIONS */
 
 /*
-  This function looks for sync words across the types in paralell, and only does an exhaustive
+  This function looks for sync words across the types in parallel, and only does an exhaustive
   test if it finds a syncword. Once sync has been established, the relevent sync function sets
   m_syncFunc to itself. This function will only be called again if total sync is lost, which
-  allows is to switch stream types on the fly much like a real reicever does.
+  allows is to switch stream types on the fly much like a real receiver does.
 */
 unsigned int CAEStreamParser::DetectType(uint8_t *data, unsigned int size)
 {
@@ -500,7 +498,6 @@ unsigned int CAEStreamParser::SyncDTS(uint8_t *data, unsigned int size)
   {
     unsigned int header = data[0] << 24 | data[1] << 16 | data[2] << 8 | data[3];
     unsigned int hd_sync = 0;
-    bool match = true;
     unsigned int dtsBlocks;
     unsigned int amode;
     unsigned int sfreq;
@@ -512,10 +509,7 @@ unsigned int CAEStreamParser::SyncDTS(uint8_t *data, unsigned int size)
       /* 14bit BE */
       case DTS_PREAMBLE_14BE:
         if (data[4] != 0x07 || (data[5] & 0xf0) != 0xf0)
-        {
-          match = false;
-          break;
-        }
+          continue;
         dtsBlocks = (((data[5] & 0x7) << 4) | ((data[6] & 0x3C) >> 2)) + 1;
         m_fsize = (((((data[6] & 0x3) << 8) | data[7]) << 4) | ((data[8] & 0x3C) >> 2)) + 1;
         amode = ((data[8] & 0x3) << 4) | ((data[9] & 0xF0) >> 4);
@@ -528,10 +522,7 @@ unsigned int CAEStreamParser::SyncDTS(uint8_t *data, unsigned int size)
       /* 14bit LE */
       case DTS_PREAMBLE_14LE:
         if (data[5] != 0x07 || (data[4] & 0xf0) != 0xf0)
-        {
-          match = false;
-          break;
-        }
+          continue;
         dtsBlocks = (((data[4] & 0x7) << 4) | ((data[7] & 0x3C) >> 2)) + 1;
         m_fsize = (((((data[7] & 0x3) << 8) | data[6]) << 4) | ((data[9] & 0x3C) >> 2)) + 1;
         amode = ((data[9] & 0x3) << 4) | ((data[8] & 0xF0) >> 4);
@@ -564,11 +555,10 @@ unsigned int CAEStreamParser::SyncDTS(uint8_t *data, unsigned int size)
         break;
 
       default:
-        match = false;
-        break;
+        continue;
     }
 
-    if (!match || sfreq == 0 || sfreq >= DTS_SFREQ_COUNT)
+    if (sfreq == 0 || sfreq >= DTS_SFREQ_COUNT)
       continue;
 
     /* make sure the framesize is sane */

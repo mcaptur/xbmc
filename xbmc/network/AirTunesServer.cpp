@@ -3,7 +3,7 @@
  * from Shairport, by James Laird.
  *
  *      Copyright (C) 2011-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,9 +21,6 @@
  *
  */
 
-#include "system.h"
-
-#ifdef HAS_AIRTUNES
 #include "AirTunesServer.h"
 
 #include <map>
@@ -37,6 +34,7 @@
 #include "filesystem/File.h"
 #include "filesystem/PipeFile.h"
 #include "GUIInfoManager.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "input/Key.h"
 #include "interfaces/AnnouncementManager.h"
@@ -125,8 +123,9 @@ void CAirTunesServer::RefreshMetadata()
 {
   CSingleLock lock(m_metadataLock);
   MUSIC_INFO::CMusicInfoTag tag;
-  if (g_infoManager.GetCurrentSongTag())
-    tag = *g_infoManager.GetCurrentSongTag();
+  CGUIInfoManager& infoMgr = CServiceBroker::GetGUI()->GetInfoManager();
+  if (infoMgr.GetCurrentSongTag())
+    tag = *infoMgr.GetCurrentSongTag();
   if (m_metadata[0].length())
     tag.SetAlbum(m_metadata[0]);//album
   if (m_metadata[1].length())
@@ -144,15 +143,16 @@ void CAirTunesServer::RefreshCoverArt(const char *outputFilename/* = NULL*/)
   if (outputFilename != NULL)
     coverArtFile = std::string(outputFilename);
 
+  CGUIInfoManager& infoMgr = CServiceBroker::GetGUI()->GetInfoManager();
   CSingleLock lock(m_metadataLock);
   //reset to empty before setting the new one
   //else it won't get refreshed because the name didn't change
-  g_infoManager.SetCurrentAlbumThumb("");
+  infoMgr.SetCurrentAlbumThumb("");
   //update the ui
-  g_infoManager.SetCurrentAlbumThumb(coverArtFile);
+  infoMgr.SetCurrentAlbumThumb(coverArtFile);
   //update the ui
   CGUIMessage msg(GUI_MSG_NOTIFY_ALL,0,0,GUI_MSG_REFRESH_THUMBS);
-  g_windowManager.SendThreadMessage(msg);
+  CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
 }
 
 void CAirTunesServer::SetMetadataFromBuffer(const char *buffer, unsigned int size)
@@ -175,7 +175,7 @@ void CAirTunesServer::Announce(AnnouncementFlag flag, const char *sender, const 
 {
   if ( (flag & Player) && strcmp(sender, "xbmc") == 0)
   {
-    if (strcmp(message, "OnPlay") == 0 && m_streamStarted)
+    if ((strcmp(message, "OnPlay") == 0 || strcmp(message, "OnResume") == 0) && m_streamStarted)
     {
       RefreshMetadata();
       RefreshCoverArt();
@@ -231,7 +231,7 @@ void CAirTunesServer::Process()
     if (m_streamStarted)
       SetupRemoteControl();// check for remote controls
 
-    m_processActions.WaitMSec(1000);// timeout for beeing able to stop
+    m_processActions.WaitMSec(1000);// timeout for being able to stop
     std::list<CAction> currentActions;
     {
       CSingleLock lock(m_actionQueueLock);// copy and clear the source queue
@@ -365,7 +365,7 @@ void* CAirTunesServer::AudioOutputFunctions::audio_init(void *cls, int bits, int
   XFILE::CPipeFile *pipe=(XFILE::CPipeFile *)cls;
   const CURL pathToUrl(XFILE::PipesManager::GetInstance().GetUniquePipeName());
   pipe->OpenForWrite(pathToUrl);
-  pipe->SetOpenThreashold(300);
+  pipe->SetOpenThreshold(300);
 
   Demux_BXA_FmtHeader header;
   strncpy(header.fourcc, "BXA ", 4);
@@ -417,8 +417,8 @@ void CAirTunesServer::AudioOutputFunctions::audio_set_progress(void *cls, void *
   duration /= m_sampleRate;
   position /= m_sampleRate;
 
-  g_application.m_pPlayer->SetTime(position * 1000);
-  g_application.m_pPlayer->SetTotalTime(duration * 1000);
+  g_application.GetAppPlayer().SetTime(position * 1000);
+  g_application.GetAppPlayer().SetTotalTime(duration * 1000);
 }
 
 void CAirTunesServer::SetupRemoteControl()
@@ -432,7 +432,7 @@ void CAirTunesServer::SetupRemoteControl()
   std::vector<CZeroconfBrowser::ZeroconfService> services = CZeroconfBrowser::GetInstance()->GetFoundServices();
   for (auto service : services )
   {
-    if (StringUtils::CompareNoCase(service.GetType(), std::string(ZEROCONF_DACP_SERVICE) + ".") == 0)
+    if (StringUtils::EqualsNoCase(service.GetType(), std::string(ZEROCONF_DACP_SERVICE) + "."))
     {
 #define DACP_NAME_PREFIX "iTunes_Ctrl_"
       // name has the form "iTunes_Ctrl_56B29BB6CB904862"
@@ -549,7 +549,7 @@ bool CAirTunesServer::StartServer(int port, bool nonlocal, bool usePassword, con
 {
   bool success = false;
   std::string pw = password;
-  CNetworkInterface *net = g_application.getNetwork().GetFirstConnectedInterface();
+  CNetworkInterface *net = CServiceBroker::GetNetwork().GetFirstConnectedInterface();
   StopServer(true);
 
   if (net)
@@ -630,7 +630,7 @@ bool CAirTunesServer::IsRAOPRunningInternal()
 {
   if (m_pLibShairplay != nullptr && m_pRaop != nullptr)
   {
-    return m_pLibShairplay->raop_is_running(m_pRaop);
+    return m_pLibShairplay->raop_is_running(m_pRaop) != 0;
   }
   return false;
 }
@@ -707,7 +707,7 @@ bool CAirTunesServer::Initialize(const std::string &password)
 
       m_pLibShairplay->raop_set_log_callback(m_pRaop, shairplay_log, NULL);
 
-      CNetworkInterface *net = g_application.getNetwork().GetFirstConnectedInterface();
+      CNetworkInterface *net = CServiceBroker::GetNetwork().GetFirstConnectedInterface();
 
       if (net)
       {
@@ -732,6 +732,3 @@ void CAirTunesServer::Deinitialize()
     m_pRaop = nullptr;
   }
 }
-
-#endif
-

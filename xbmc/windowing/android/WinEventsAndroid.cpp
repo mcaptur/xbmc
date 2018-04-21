@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2010-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,16 +18,15 @@
  *
  */
 
-#include "system.h"
-
 #include "WinEventsAndroid.h"
 
 #include "Application.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "input/InputManager.h"
 #include "input/XBMC_vkeys.h"
+#include "ServiceBroker.h"
 #include "utils/log.h"
-#include "windowing/WindowingFactory.h"
 
 #define ALMOST_ZERO 0.125f
 enum {
@@ -110,7 +109,7 @@ bool CWinEventsAndroid::MessagePump()
     ret |= g_application.OnEvent(pumpEvent);
 
     if (pumpEvent.type == XBMC_MOUSEBUTTONUP)
-      g_windowManager.SendMessage(GUI_MSG_UNFOCUS_ALL, 0, 0, 0, 0);
+      CServiceBroker::GetGUI()->GetWindowManager().SendMessage(GUI_MSG_UNFOCUS_ALL, 0, 0, 0, 0);
   }
 
   return ret;

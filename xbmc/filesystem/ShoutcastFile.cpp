@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,7 +23,6 @@
 //
 //////////////////////////////////////////////////////////////////////
 
-#include "system.h"
 #include "ShoutcastFile.h"
 #include "guilib/GUIWindowManager.h"
 #include "URL.h"
@@ -83,7 +82,7 @@ bool CShoutcastFile::Open(const CURL& url)
       m_tag.SetGenre(m_file.GetHttpHeader().GetValue("ice-genre")); // icecast
     m_tag.SetLoaded(true);
   }
-  m_fileCharset = m_file.GetServerReportedCharset();
+  m_fileCharset = m_file.GetProperty(XFILE::FILE_PROPERTY_CONTENT_CHARSET);
   m_metaint = atoi(m_file.GetHttpHeader().GetValue("icy-metaint").c_str());
   if (!m_metaint)
     m_metaint = -1;

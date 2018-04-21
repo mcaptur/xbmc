@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 
 #include "guilib/IWindowManagerCallback.h"
 
-class CFileItemList;
+class CAppParamParser;
 
 // Do not change the numbering, external scripts depend on them
 enum {
@@ -37,7 +37,7 @@ class CXBApplicationEx : public IWindowManagerCallback
 {
 public:
   CXBApplicationEx();
-  ~CXBApplicationEx();
+  ~CXBApplicationEx() override;
 
   // Variables for timing
   bool m_bStop;
@@ -51,8 +51,8 @@ public:
   virtual void SetRenderGUI(bool renderGUI) {};
 
 public:
-  INT Run(CFileItemList &playlist);
-  VOID Destroy();
+  int Run(const CAppParamParser &params);
+  void Destroy();
 
 private:
 };

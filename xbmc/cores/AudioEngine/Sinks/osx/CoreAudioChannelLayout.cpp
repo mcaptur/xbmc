@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2011-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -211,7 +211,7 @@ const char* CCoreAudioChannelLayout::ChannelLayoutToString(AudioChannelLayout& l
   }
   else
   {
-    // Predefinied layout 'tag'
+    // Predefined layout 'tag'
     UInt32 propSize = 0;
     AudioFormatGetPropertyInfo(kAudioFormatProperty_ChannelLayoutForTag,
       sizeof(layout.mChannelLayoutTag), &layout.mChannelLayoutTag, &propSize);
@@ -260,7 +260,7 @@ bool CCoreAudioChannelLayout::AllChannelUnknown()
   }
   else
   {
-    // Predefinied layout 'tag'
+    // Predefined layout 'tag'
     UInt32 propSize = 0;
     AudioFormatGetPropertyInfo(kAudioFormatProperty_ChannelLayoutForTag,
       sizeof(m_pLayout->mChannelLayoutTag), &m_pLayout->mChannelLayoutTag, &propSize);

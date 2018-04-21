@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@
 
 #include "threads/SingleLock.h"
 
+#include <memory>
 #include <vector>
 
 #ifdef TARGET_WINDOWS
@@ -52,28 +53,28 @@ namespace XBMCAddonUtils
   class GuiLock
   {
   public:
-    GuiLock();
+    GuiLock(XBMCAddon::LanguageHook* languageHook, bool offScreen);
     ~GuiLock();
 
   protected:
-    XBMCAddon::LanguageHook* languageHook;
+    XBMCAddon::LanguageHook* m_languageHook = nullptr;
+    bool m_offScreen = false;
   };
 
   class InvertSingleLockGuard
   {
     CSingleLock& lock;
   public:
-    InvertSingleLockGuard(CSingleLock& _lock) : lock(_lock) { lock.Leave(); }
+    explicit InvertSingleLockGuard(CSingleLock& _lock) : lock(_lock) { lock.Leave(); }
     ~InvertSingleLockGuard() { lock.Enter(); }
   };
 
-#define LOCKGUI XBMCAddonUtils::GuiLock __gl
 
   /*
    * Looks in references.xml for image name
    * If none exist return default image name
    */
-  const char *getDefaultImage(char* cControlType, char* cTextureType, char* cDefault);
+  const char *getDefaultImage(char* cControlType, char* cTextureType);
 
 #ifdef ENABLE_XBMC_TRACE_API
   class TraceGuard
@@ -85,7 +86,7 @@ namespace XBMCAddonUtils
 
     const char* getSpaces();
 
-    TraceGuard(const char* _function);
+    explicit TraceGuard(const char* _function);
     TraceGuard();
     ~TraceGuard();
   };

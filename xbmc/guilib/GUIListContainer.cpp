@@ -18,7 +18,6 @@
  *
  */
 
-#include "system.h"
 #include "GUIListContainer.h"
 #include "input/Key.h"
 #include "utils/StringUtils.h"
@@ -30,9 +29,7 @@ CGUIListContainer::CGUIListContainer(int parentID, int controlID, float posX, fl
   m_type = VIEW_TYPE_LIST;
 }
 
-CGUIListContainer::~CGUIListContainer(void)
-{
-}
+CGUIListContainer::~CGUIListContainer(void) = default;
 
 bool CGUIListContainer::OnAction(const CAction &action)
 {

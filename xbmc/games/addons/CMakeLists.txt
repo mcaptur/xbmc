@@ -1,17 +1,15 @@
 set(SOURCES GameClient.cpp
-            GameClientInput.cpp
-            GameClientKeyboard.cpp
-            GameClientMouse.cpp
+            GameClientInGameSaves.cpp
             GameClientProperties.cpp
+            GameClientSubsystem.cpp
             GameClientTiming.cpp
             GameClientTranslator.cpp)
 
 set(HEADERS GameClient.h
             GameClientCallbacks.h
-            GameClientInput.h
-            GameClientKeyboard.h
-            GameClientMouse.h
+            GameClientInGameSaves.h
             GameClientProperties.h
+            GameClientSubsystem.h
             GameClientTiming.h
             GameClientTranslator.h)
 

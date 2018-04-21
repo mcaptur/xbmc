@@ -2,7 +2,7 @@
  *      Copyright (c) 2002 d7o3g4q and RUNTiME
  *      Portions Copyright (c) by the authors of ffmpeg and xvid
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,25 +20,22 @@
  *
  */
 
-#if defined(TARGET_WINDOWS)
-#include "system.h"
-#endif
-
 #include "OMXAudio.h"
 #include "Application.h"
 #include "ServiceBroker.h"
 #include "utils/log.h"
-#include "linux/RBP.h"
+#include "platform/linux/RBP.h"
 
 #define CLASSNAME "COMXAudio"
 
-#include "linux/XMemUtils.h"
+#include "platform/linux/XMemUtils.h"
 
 #include "settings/AdvancedSettings.h"
 #include "settings/MediaSettings.h"
 #include "settings/Settings.h"
 #include "guilib/LocalizeStrings.h"
-#include "cores/AudioEngine/AEFactory.h"
+#include "cores/AudioEngine/Interfaces/AE.h"
+#include "cores/VideoPlayer/Interface/Addon/TimingConstants.h"
 #include "Util.h"
 #include <algorithm>
 #include <cassert>
@@ -64,7 +61,7 @@ static const GUID KSDATAFORMAT_SUBTYPE_PCM = {
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 //***********************************************************************************************
-COMXAudio::COMXAudio() :
+COMXAudio::COMXAudio(CProcessInfo &processInfo) :
   m_Initialized     (false  ),
   m_CurrentVolume   (0      ),
   m_Mute            (false  ),
@@ -92,18 +89,26 @@ COMXAudio::COMXAudio() :
   m_last_pts        (DVD_NOPTS_VALUE),
   m_submitted_eos   (false  ),
   m_failed_eos      (false  ),
-  m_output          (AESINKPI_UNKNOWN)
+  m_output          (AESINKPI_UNKNOWN),
+  m_processInfo(processInfo)
 {
-  CAEFactory::Suspend();
-  while (!CAEFactory::IsSuspended())
-    Sleep(10);
+  // magic value used when omxplayer is playing - want sink to be disabled
+  AEAudioFormat m_format;
+  m_format.m_dataFormat = AE_FMT_RAW;
+  m_format.m_streamInfo.m_type = CAEStreamInfo::STREAM_TYPE_AC3;
+  m_format.m_streamInfo.m_sampleRate = 16000;
+  m_format.m_streamInfo.m_channels = 2;
+  m_format.m_sampleRate = 16000;
+  m_format.m_frameSize = 1;
+  m_pAudioStream = CServiceBroker::GetActiveAE()->MakeStream(m_format);
 }
 
 COMXAudio::~COMXAudio()
 {
   Deinitialize();
 
-  CAEFactory::Resume();
+  if (m_pAudioStream)
+    CServiceBroker::GetActiveAE()->FreeStream(m_pAudioStream);
 }
 
 bool COMXAudio::PortSettingsChanged()
@@ -139,7 +144,7 @@ bool COMXAudio::PortSettingsChanged()
       return false;
   }
 
-  SetDynamicRangeCompression((long)(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_VolumeAmplification * 100));
+  SetDynamicRangeCompression((long)(m_processInfo.GetVideoSettings().m_VolumeAmplification * 100));
   UpdateAttenuation();
 
   if( m_omx_mixer.IsInitialized() )
@@ -789,7 +794,7 @@ bool COMXAudio::Initialize(AEAudioFormat format, OMXClock *clock, CDVDStreamInfo
   omx_err = m_omx_decoder.SetParameter(OMX_IndexParamPortDefinition, &port_param);
   if(omx_err != OMX_ErrorNone)
   {
-    CLog::Log(LOGERROR, "COMXAudio::Initialize error set OMX_IndexParamPortDefinition (intput) omx_err(0x%08x)\n", omx_err);
+    CLog::Log(LOGERROR, "COMXAudio::Initialize error set OMX_IndexParamPortDefinition (input) omx_err(0x%08x)\n", omx_err);
     return false;
   }
 
@@ -829,7 +834,7 @@ bool COMXAudio::Initialize(AEAudioFormat format, OMXClock *clock, CDVDStreamInfo
   }
 
   omx_err = m_omx_decoder.AllocInputBuffers();
-  if(omx_err != OMX_ErrorNone) 
+  if(omx_err != OMX_ErrorNone)
   {
     CLog::Log(LOGERROR, "COMXAudio::Initialize - Error alloc buffers 0x%08x", omx_err);
     return false;
@@ -865,7 +870,7 @@ bool COMXAudio::Initialize(AEAudioFormat format, OMXClock *clock, CDVDStreamInfo
       m_omx_decoder.DecoderEmptyBufferDone(m_omx_decoder.GetComponent(), omx_buffer);
       return false;
     }
-  } 
+  }
 
   /* return on decoder error so m_Initialized stays false */
   if(m_omx_decoder.BadState())
@@ -1181,7 +1186,7 @@ unsigned int COMXAudio::AddPackets(const void* data, unsigned int len, double dt
     omx_err = m_omx_decoder.EmptyThisBuffer(omx_buffer);
     if (omx_err != OMX_ErrorNone)
     {
-      CLog::Log(LOGERROR, "%s::%s - OMX_EmptyThisBuffer() finaly failed\n", CLASSNAME, __func__);
+      CLog::Log(LOGERROR, "%s::%s - OMX_EmptyThisBuffer() finally failed\n", CLASSNAME, __func__);
       m_omx_decoder.DecoderEmptyBufferDone(m_omx_decoder.GetComponent(), omx_buffer);
       return 0;
     }

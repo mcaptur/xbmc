@@ -1,6 +1,6 @@
  /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -64,19 +64,19 @@ namespace XBMCAddon
     {
     public:
       WindowDialog();
-      virtual ~WindowDialog();
+      ~WindowDialog() override;
 
 #ifndef SWIG
-      SWIGHIDDENVIRTUAL bool OnMessage(CGUIMessage& message);
-      SWIGHIDDENVIRTUAL bool OnAction(const CAction &action);
-      SWIGHIDDENVIRTUAL void OnDeinitWindow(int nextWindowID);
+      SWIGHIDDENVIRTUAL bool OnMessage(CGUIMessage& message) override;
+      SWIGHIDDENVIRTUAL bool OnAction(const CAction &action) override;
+      SWIGHIDDENVIRTUAL void OnDeinitWindow(int nextWindowID) override;
 
-      SWIGHIDDENVIRTUAL bool IsDialogRunning() const { return WindowDialogMixin::IsDialogRunning(); }
-      SWIGHIDDENVIRTUAL bool IsModalDialog() const { XBMC_TRACE; return true; };
-      SWIGHIDDENVIRTUAL bool IsDialog() const { XBMC_TRACE; return true; };
+      SWIGHIDDENVIRTUAL bool IsDialogRunning() const override { return WindowDialogMixin::IsDialogRunning(); }
+      SWIGHIDDENVIRTUAL bool IsModalDialog() const override { XBMC_TRACE; return true; };
+      SWIGHIDDENVIRTUAL bool IsDialog() const override { XBMC_TRACE; return true; };
 
-      SWIGHIDDENVIRTUAL inline void show() { XBMC_TRACE; WindowDialogMixin::show(); }
-      SWIGHIDDENVIRTUAL inline void close() { XBMC_TRACE; WindowDialogMixin::close(); }
+      SWIGHIDDENVIRTUAL inline void show() override { XBMC_TRACE; WindowDialogMixin::show(); }
+      SWIGHIDDENVIRTUAL inline void close() override { XBMC_TRACE; WindowDialogMixin::close(); }
 #endif
     };
     ///@}

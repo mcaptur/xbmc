@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #include "peripherals/Peripherals.h"
 #include "threads/SingleLock.h"
 #include "utils/TimeUtils.h"
+#include "ServiceBroker.h"
 
 #define POPUP_ICON                400
 #define POPUP_CAPTION_TEXT        401
@@ -39,9 +40,7 @@ CGUIDialogKaiToast::CGUIDialogKaiToast(void)
   m_toastMessageTime = 0;
 }
 
-CGUIDialogKaiToast::~CGUIDialogKaiToast(void)
-{
-}
+CGUIDialogKaiToast::~CGUIDialogKaiToast(void) = default;
 
 bool CGUIDialogKaiToast::OnMessage(CGUIMessage& message)
 {
@@ -108,7 +107,7 @@ bool CGUIDialogKaiToast::DoWork()
     m_toastDisplayTime = toast.displayTime;
     m_toastMessageTime = toast.messageTime;
 
-    CSingleLock lock2(g_graphicsContext);
+    CSingleLock lock2(CServiceBroker::GetWinSystem()->GetGfxContext());
 
     if(!Initialize())
       return false;
@@ -136,7 +135,7 @@ bool CGUIDialogKaiToast::DoWork()
     SetSound(toast.withSound);
 
     // Activate haptics for this notification
-    PERIPHERALS::g_peripherals.OnUserNotification();
+    CServiceBroker::GetPeripherals().OnUserNotification();
 
     ResetTimer();
     return true;

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2015 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -24,9 +24,13 @@
 #include "addons/ContextMenuAddon.h"
 #include "addons/IAddon.h"
 #include "GUIInfoManager.h"
+#include "guilib/GUIComponent.h"
+#ifdef HAS_PYTHON
 #include "interfaces/generic/ScriptInvocationManager.h"
 #include "interfaces/python/ContextItemAddonInvoker.h"
 #include "interfaces/python/XBPython.h"
+#endif
+#include "ServiceBroker.h"
 #include "utils/StringUtils.h"
 
 
@@ -34,7 +38,7 @@ bool CContextMenuItem::IsVisible(const CFileItem& item) const
 {
   if (!m_infoBoolRegistered)
   {
-    m_infoBool = g_infoManager.Register(m_visibilityCondition, 0);
+    m_infoBool = CServiceBroker::GetGUI()->GetInfoManager().Register(m_visibilityCondition, 0);
     m_infoBoolRegistered = true;
   }
   return IsGroup() || (m_infoBool && m_infoBool->Get(&item));
@@ -56,11 +60,15 @@ bool CContextMenuItem::Execute(const CFileItemPtr& item) const
     return false;
 
   ADDON::AddonPtr addon;
-  if (!ADDON::CAddonMgr::GetInstance().GetAddon(m_addonId, addon))
+  if (!CServiceBroker::GetAddonMgr().GetAddon(m_addonId, addon))
     return false;
 
+#ifdef HAS_PYTHON
   LanguageInvokerPtr invoker(new CContextItemAddonInvoker(&g_pythonParser, item));
   return (CScriptInvocationManager::GetInstance().ExecuteAsync(m_library, invoker, addon) != -1);
+#else
+  return false;
+#endif
 }
 
 bool CContextMenuItem::operator==(const CContextMenuItem& other) const

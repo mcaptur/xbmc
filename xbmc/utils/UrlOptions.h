@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@ public:
   void Clear() { m_options.clear(); m_strLead.clear(); }
 
   const UrlOptions& GetOptions() const { return m_options; }
-  std::string GetOptionsString(bool withLeadingSeperator = false) const;
+  std::string GetOptionsString(bool withLeadingSeparator = false) const;
 
   virtual void AddOption(const std::string &key, const char *value);
   virtual void AddOption(const std::string &key, const std::string &value);

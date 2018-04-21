@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
 #include "guilib/GUIControl.h"
 #include "guilib/GUIFont.h"
 #include "input/Key.h"
+#include "utils/Color.h"
 
 #include "Alternative.h"
 #include "Tuple.h"
@@ -78,7 +79,7 @@ namespace XBMCAddon
                   iControlRight(0), pGUIControl(NULL) {}
 
     public:
-      virtual ~Control();
+      ~Control() override;
 
 #ifndef SWIG
       virtual CGUIControl* Create();
@@ -277,6 +278,28 @@ namespace XBMCAddon
       setVisible(...);
 #else
       virtual void setVisible(bool visible);
+#endif
+
+      // isVisible() Method
+#ifdef DOXYGEN_SHOULD_USE_THIS
+      /// \ingroup python_xbmcgui_control
+      /// @brief \python_func{ isVisible() }
+      ///-----------------------------------------------------------------------
+      /// Get the control's visible/hidden state.
+      ///
+      ///-----------------------------------------------------------------------
+      /// @python_v18 New function added.
+      ///
+      /// **Example:**
+      /// ~~~~~~~~~~~~~{.py}
+      /// ...
+      /// if self.button.isVisible():
+      ///     ...
+      /// ~~~~~~~~~~~~~
+      ///
+      isVisible(...);
+#else
+      virtual bool isVisible();
 #endif
 
       // setVisibleCondition() Method
@@ -651,7 +674,7 @@ namespace XBMCAddon
     class ControlSpin : public Control
     {
     public:
-      virtual ~ControlSpin();
+      ~ControlSpin() override;
 
 #ifdef DOXYGEN_SHOULD_USE_THIS
       /// \ingroup python_xbmcgui_control_spin
@@ -696,7 +719,7 @@ namespace XBMCAddon
 #endif
 
 #ifndef SWIG
-      color_t color;
+      UTILS::Color color;
       std::string strTextureUp;
       std::string strTextureDown;
       std::string strTextureUpFocus;
@@ -775,7 +798,7 @@ namespace XBMCAddon
                   long alignment = XBFONT_LEFT, 
                   bool hasPath = false, long angle = 0);
 
-      virtual ~ControlLabel();
+      ~ControlLabel() override;
 
 #ifdef DOXYGEN_SHOULD_USE_THIS
       /// \ingroup python_xbmcgui_control_label
@@ -848,13 +871,13 @@ namespace XBMCAddon
 
       std::string strFont;
       std::string strText;
-      color_t textColor;
-      color_t disabledColor;
+      UTILS::Color textColor;
+      UTILS::Color disabledColor;
       uint32_t align;
       bool bHasPath;
       int iAngle;
 
-      SWIGHIDDENVIRTUAL CGUIControl* Create();
+      SWIGHIDDENVIRTUAL CGUIControl* Create() override;
 
 #endif
     };
@@ -897,7 +920,7 @@ namespace XBMCAddon
     /// | XBFONT_JUSTIFIED  | 0x00000010 | Justify text
     /// @param focusTexture         [opt] string - filename for focus texture.
     /// @param noFocusTexture       [opt] string - filename for no focus texture.
-    /// @param isPassword           [opt] bool - True=mask text value with `****`.
+    /// @param isPassword           [opt] bool - True=mask text value with `****`(deprecated, use setType()).
     ///
     /// @note You can use the above as keywords for arguments and skip certain
     /// optional arguments.\n
@@ -908,6 +931,7 @@ namespace XBMCAddon
     ///
     ///
     ///-------------------------------------------------------------------------
+    /// @python_v18 Deprecated **isPassword**
     ///
     /// **Example:**
     /// ~~~~~~~~~~~~~{.py}
@@ -1049,12 +1073,49 @@ namespace XBMCAddon
       std::string strText;
       std::string strTextureFocus;
       std::string strTextureNoFocus;
-      color_t textColor;
-      color_t disabledColor;
+      UTILS::Color textColor;
+      UTILS::Color disabledColor;
       uint32_t align;
       bool bIsPassword;
 
-      SWIGHIDDENVIRTUAL CGUIControl* Create();
+      SWIGHIDDENVIRTUAL CGUIControl* Create() override;
+#endif
+
+      // setType() Method
+#ifdef DOXYGEN_SHOULD_USE_THIS
+      /// \ingroup python_xbmcgui_control_edit
+      /// @brief \python_func{ setType(type, heading) }
+      ///-----------------------------------------------------------------------
+      /// Sets the type of this edit control.
+      ///
+      /// @param type              integer - type of the edit control.
+      /// | Param                            | Definition                                  |
+      /// |----------------------------------|:--------------------------------------------|
+      /// | xbmcgui.INPUT_TYPE_TEXT          | (standard keyboard)
+      /// | xbmcgui.INPUT_TYPE_NUMBER        | (format: #)
+      /// | xbmcgui.INPUT_TYPE_DATE          | (format: DD/MM/YYYY)
+      /// | xbmcgui.INPUT_TYPE_TIME          | (format: HH:MM)
+      /// | xbmcgui.INPUT_TYPE_IPADDRESS     | (format: #.#.#.#)
+      /// | xbmcgui.INPUT_TYPE_PASSWORD      | (input is masked)
+      /// | xbmcgui.INPUT_TYPE_PASSWORD_MD5  | (input is masked, return md5 hash of input)
+      /// | xbmcgui.INPUT_TYPE_SECONDS       | (format: SS or MM:SS or HH:MM:SS or MM min)
+      /// @param heading           string or unicode - heading that will be used for to numeric or
+      ///                                              keyboard dialog when the edit control is clicked.
+      ///
+      ///
+      ///-----------------------------------------------------------------------
+      /// @python_v18 New function added.
+      ///
+      /// **Example:**
+      /// ~~~~~~~~~~~~~{.py}
+      /// ...
+      /// self.edit.setType(xbmcgui.INPUT_TYPE_TIME, 'Please enter the time')
+      /// ...
+      /// ~~~~~~~~~~~~~
+      ///
+      setType(...);
+#else
+      virtual void setType(int type, const String& heading);
 #endif
     };
     /// @}
@@ -1135,7 +1196,7 @@ namespace XBMCAddon
                   long _itemTextYOffset = CONTROL_TEXT_OFFSET_Y, long _itemHeight = 27, long _space = 2, 
                   long _alignmentY = XBFONT_CENTER_Y);
 
-      virtual ~ControlList();
+      ~ControlList() override;
 
 #ifdef DOXYGEN_SHOULD_USE_THIS
       /// \ingroup python_xbmcgui_control_list
@@ -1561,7 +1622,7 @@ namespace XBMCAddon
 #ifndef SWIG
       void sendLabelBind(int tail);
 
-      SWIGHIDDENVIRTUAL bool canAcceptMessages(int actionId) 
+      SWIGHIDDENVIRTUAL bool canAcceptMessages(int actionId) override 
       { return ((actionId == ACTION_SELECT_ITEM) | (actionId == ACTION_MOUSE_LEFT_CLICK)); }
 
       // This is called from AddonWindow.cpp but shouldn't be available
@@ -1579,8 +1640,8 @@ namespace XBMCAddon
       std::string strFont;
       AddonClass::Ref<ControlSpin> pControlSpin;
 
-      color_t textColor;
-      color_t selectedColor;
+      UTILS::Color textColor;
+      UTILS::Color selectedColor;
       std::string strTextureButton;
       std::string strTextureButtonFocus;
 
@@ -1593,7 +1654,7 @@ namespace XBMCAddon
       int itemTextOffsetY;
       uint32_t alignmentY;
 
-      SWIGHIDDENVIRTUAL CGUIControl* Create();
+      SWIGHIDDENVIRTUAL CGUIControl* Create() override;
 #endif
     };
     /// @}
@@ -1734,13 +1795,13 @@ namespace XBMCAddon
 
 #ifndef SWIG
       std::string strFont;
-      color_t textColor;
+      UTILS::Color textColor;
       std::vector<std::string> vecLabels;
       uint32_t align;
 
-      SWIGHIDDENVIRTUAL CGUIControl* Create();
+      SWIGHIDDENVIRTUAL CGUIControl* Create() override;
 
-      ControlFadeLabel() {}
+      ControlFadeLabel() = default;
 #endif
     };
     /// @}
@@ -1920,11 +1981,11 @@ namespace XBMCAddon
 
 #ifndef SWIG
       std::string strFont;
-      color_t textColor;
+      UTILS::Color textColor;
 
-      SWIGHIDDENVIRTUAL CGUIControl* Create();
+      SWIGHIDDENVIRTUAL CGUIControl* Create() override;
 
-      ControlTextBox() {}
+      ControlTextBox() = default;
 #endif
     };
     /// @}
@@ -2041,9 +2102,9 @@ namespace XBMCAddon
 
       std::string strFileName;
       int aspectRatio;
-      color_t colorDiffuse;
+      UTILS::Color colorDiffuse;
 
-      SWIGHIDDENVIRTUAL CGUIControl* Create();
+      SWIGHIDDENVIRTUAL CGUIControl* Create() override;
 #endif
     };
     /// @}
@@ -2168,7 +2229,7 @@ namespace XBMCAddon
       /// ~~~~~~~~~~~~~{.py}
       /// ...
       /// # getPercent()
-      /// print self.progress.getPercent()
+      /// print(self.progress.getPercent())
       /// ...
       /// ~~~~~~~~~~~~~
       ///
@@ -2184,9 +2245,9 @@ namespace XBMCAddon
       std::string strTextureBg;
       std::string strTextureOverlay;
       int aspectRatio;
-      color_t colorDiffuse;
+      UTILS::Color colorDiffuse;
 
-      SWIGHIDDENVIRTUAL CGUIControl* Create();
+      SWIGHIDDENVIRTUAL CGUIControl* Create() override;
       ControlProgress() :
         aspectRatio (0)
       {}
@@ -2396,14 +2457,14 @@ namespace XBMCAddon
 #endif
 
 #ifndef SWIG
-      SWIGHIDDENVIRTUAL bool canAcceptMessages(int actionId) { return true; }
+      SWIGHIDDENVIRTUAL bool canAcceptMessages(int actionId) override { return true; }
 
       int textOffsetX;
       int textOffsetY;
-      color_t align;
+      UTILS::Color align;
       std::string strFont;
-      color_t textColor;
-      color_t disabledColor;
+      UTILS::Color textColor;
+      UTILS::Color disabledColor;
       int iAngle;
       int shadowColor;
       int focusedColor;
@@ -2412,7 +2473,7 @@ namespace XBMCAddon
       std::string strTextureFocus;
       std::string strTextureNoFocus;
 
-      SWIGHIDDENVIRTUAL CGUIControl* Create();
+      SWIGHIDDENVIRTUAL CGUIControl* Create() override;
 
       ControlButton() :
         textOffsetX (0),
@@ -2468,9 +2529,9 @@ namespace XBMCAddon
       ControlGroup(long x, long y, long width, long height);
 
 #ifndef SWIG
-      SWIGHIDDENVIRTUAL CGUIControl* Create();
+      SWIGHIDDENVIRTUAL CGUIControl* Create() override;
 
-      inline ControlGroup() {}
+      inline ControlGroup() = default;
 #endif
     };
     /// @}
@@ -2705,7 +2766,7 @@ namespace XBMCAddon
 #endif
 
 #ifndef SWIG
-      SWIGHIDDENVIRTUAL bool canAcceptMessages(int actionId) { return true; }
+      SWIGHIDDENVIRTUAL bool canAcceptMessages(int actionId) override { return true; }
 
       std::string strFont;
       std::string strText;
@@ -2717,16 +2778,16 @@ namespace XBMCAddon
       std::string strTextureRadioOffNoFocus;
       std::string strTextureRadioOnDisabled;
       std::string strTextureRadioOffDisabled;
-      color_t textColor;
-      color_t disabledColor;
+      UTILS::Color textColor;
+      UTILS::Color disabledColor;
       int textOffsetX;
       int textOffsetY; 
      uint32_t align;
       int iAngle;
-      color_t shadowColor;
-      color_t focusedColor;
+      UTILS::Color shadowColor;
+      UTILS::Color focusedColor;
 
-      SWIGHIDDENVIRTUAL CGUIControl* Create();
+      SWIGHIDDENVIRTUAL CGUIControl* Create() override;
 
       ControlRadioButton() :
         textOffsetX (0),
@@ -2800,7 +2861,7 @@ namespace XBMCAddon
       /// **Example:**
       /// ~~~~~~~~~~~~~{.py}
       /// ...
-      /// print self.slider.getPercent()
+      /// print(self.slider.getPercent())
       /// ...
       /// ~~~~~~~~~~~~~
       ///
@@ -2833,15 +2894,121 @@ namespace XBMCAddon
       virtual void setPercent(float pct);
 #endif
 
+#ifdef DOXYGEN_SHOULD_USE_THIS
+      ///
+      /// \ingroup python_xbmcgui_control_slider
+      /// @brief \python_func{ getInt() }
+      ///-----------------------------------------------------------------------
+      /// Returns the value of the slider.
+      ///
+      /// @return                   int - value of slider
+      ///
+      ///
+      ///-----------------------------------------------------------------------
+      /// @python_v18 New function added.
+      ///
+      /// **Example:**
+      /// ~~~~~~~~~~~~~{.py}
+      /// ...
+      /// print(self.slider.getInt())
+      /// ...
+      /// ~~~~~~~~~~~~~
+      ///
+      getInt();
+#else
+      virtual int getInt();
+#endif
+
+#ifdef DOXYGEN_SHOULD_USE_THIS
+      ///
+      /// \ingroup python_xbmcgui_control_slider
+      /// @brief \python_func{ setInt(value, min, delta, max) }
+      ///-----------------------------------------------------------------------
+      /// Sets the range, value and step size of the slider.
+      ///
+      /// @param value              int - value of slider
+      /// @param min                int - min of slider
+      /// @param delta              int - step size of slider
+      /// @param max                int - max of slider
+      ///
+      ///
+      ///-----------------------------------------------------------------------
+      /// @python_v18 New function added.
+      ///
+      /// **Example:**
+      /// ~~~~~~~~~~~~~{.py}
+      /// ...
+      /// self.slider.setInt(450, 200, 10, 900)
+      /// ...
+      /// ~~~~~~~~~~~~~
+      ///
+      setInt(...);
+#else
+      virtual void setInt(int value, int min, int delta, int max);
+#endif
+
+#ifdef DOXYGEN_SHOULD_USE_THIS
+      ///
+      /// \ingroup python_xbmcgui_control_slider
+      /// @brief \python_func{ getFloat() }
+      ///-----------------------------------------------------------------------
+      /// Returns the value of the slider.
+      ///
+      /// @return                   float - value of slider
+      ///
+      ///
+      ///-----------------------------------------------------------------------
+      /// @python_v18 New function added.
+      ///
+      /// **Example:**
+      /// ~~~~~~~~~~~~~{.py}
+      /// ...
+      /// print(self.slider.getFloat())
+      /// ...
+      /// ~~~~~~~~~~~~~
+      ///
+      getFloat();
+#else
+      virtual float getFloat();
+#endif
+
+#ifdef DOXYGEN_SHOULD_USE_THIS
+      ///
+      /// \ingroup python_xbmcgui_control_slider
+      /// @brief \python_func{ setFloat(value, min, delta, max) }
+      ///-----------------------------------------------------------------------
+      /// Sets the range, value and step size of the slider.
+      ///
+      /// @param value              float - value of slider
+      /// @param min                float - min of slider
+      /// @param delta              float - step size of slider
+      /// @param max                float - max of slider
+      ///
+      ///
+      ///-----------------------------------------------------------------------
+      /// @python_v18 New function added.
+      ///
+      /// **Example:**
+      /// ~~~~~~~~~~~~~{.py}
+      /// ...
+      /// self.slider.setFloat(15.0, 10.0, 1.0, 20.0)
+      /// ...
+      /// ~~~~~~~~~~~~~
+      ///
+      setFloat(...);
+#else
+      virtual void setFloat(float value, float min, float delta, float max);
+#endif
+
 #ifndef SWIG
       std::string strTextureBack;
       std::string strTexture;
       std::string strTextureFoc;
       int iOrientation;
 
-      SWIGHIDDENVIRTUAL CGUIControl* Create();
+      SWIGHIDDENVIRTUAL CGUIControl* Create() override;
 
-      inline ControlSlider() {}
+      inline ControlSlider() = default;
 #endif
     };
     /// @}

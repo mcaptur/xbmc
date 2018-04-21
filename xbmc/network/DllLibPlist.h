@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2011-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@
 class DllLibPlistInterface
 {
 public:
-  virtual ~DllLibPlistInterface() {}
+  virtual ~DllLibPlistInterface() = default;
 
   virtual void        plist_from_bin        (const char *plist_bin,   uint32_t length, plist_t * plist  )=0;
   virtual plist_t     plist_new_dict        (void                                                       )=0;

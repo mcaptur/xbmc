@@ -3,7 +3,7 @@ DEPS= ../../Makefile.include Makefile
 
 # lib name, version
 LIBNAME=gmp
-VERSION=5.1.2
+VERSION=6.1.2
 SOURCE=$(LIBNAME)-$(VERSION)
 ARCHIVE=$(SOURCE).tar.bz2
 
@@ -24,6 +24,9 @@ endif
 ifeq ($(OS),osx)
 CONFIGURE_FLAGS=--with-pic
 endif
+ifeq ($(OS), android)
+CONFIGURE_FLAGS=--with-pic
+endif
 
 # configuration settings
 CONFIGURE=cp -f $(CONFIG_SUB) $(CONFIG_GUESS) .; \
@@ -31,8 +34,6 @@ CONFIGURE=cp -f $(CONFIG_SUB) $(CONFIG_GUESS) .; \
 
 
 LIBDYLIB=$(PLATFORM)/.libs/lib$(LIBNAME).a
-
-CLEAN_FILES=$(ARCHIVE) $(PLATFORM)
 
 all: .installed-$(PLATFORM)
 

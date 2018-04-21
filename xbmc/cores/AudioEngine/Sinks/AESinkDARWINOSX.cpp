@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2014 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
  *
  */
 
-#include "cores/AudioEngine/AEFactory.h"
+#include "cores/AudioEngine/AESinkFactory.h"
 #include "cores/AudioEngine/Sinks/AESinkDARWINOSX.h"
 #include "cores/AudioEngine/Utils/AERingBuffer.h"
 #include "cores/AudioEngine/Sinks/osx/CoreAudioHelpers.h"
@@ -27,7 +27,9 @@
 #include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "utils/TimeUtils.h"
-#include "linux/XMemUtils.h"
+#include "platform/linux/XMemUtils.h"
+#include "ServiceBroker.h"
+
 
 static void EnumerateDevices(CADeviceList &list)
 {
@@ -51,7 +53,7 @@ static void EnumerateDevices(CADeviceList &list)
     //(allows transition from headphones to speaker and stuff
     //like that)
     //fixme taking the first stream device is wrong here
-    //we rather might need the concatination of all streams *sucks*
+    //we rather might need the concatenation of all streams *sucks*
     if(defaultDeviceName == devEnum.GetMasterDeviceName())
     {
       struct CADeviceInstance deviceInstance;
@@ -127,7 +129,9 @@ OSStatus deviceChangedCB(AudioObjectID                       inObjectID,
   if  (deviceChanged)
   {
     CLog::Log(LOGDEBUG, "CoreAudio: audiodevicelist changed - reenumerating");
-    CAEFactory::DeviceChange();
+    IAE* ae = CServiceBroker::GetActiveAE();
+    if (ae)
+      ae->DeviceChange();
     CLog::Log(LOGDEBUG, "CoreAudio: audiodevicelist changed - done");
   }
   return noErr;
@@ -148,7 +152,7 @@ CAESinkDARWINOSX::CAESinkDARWINOSX()
 {
   // By default, kAudioHardwarePropertyRunLoop points at the process's main thread on SnowLeopard,
   // If your process lacks such a run loop, you can set kAudioHardwarePropertyRunLoop to NULL which
-  // tells the HAL to run it's own thread for notifications (which was the default prior to SnowLeopard).
+  // tells the HAL to run its own thread for notifications (which was the default prior to SnowLeopard).
   // So tell the HAL to use its own thread for similar behavior under all supported versions of OSX.
   CFRunLoopRef theRunLoop = NULL;
   AudioObjectPropertyAddress theAddress = {
@@ -170,6 +174,25 @@ CAESinkDARWINOSX::~CAESinkDARWINOSX()
 {
   CCoreAudioDevice::RegisterDeviceChangedCB(false, deviceChangedCB, this);
   CCoreAudioDevice::RegisterDefaultOutputDeviceChangedCB(false, deviceChangedCB, this);
+}
+
+void CAESinkDARWINOSX::Register()
+{
+  AE::AESinkRegEntry reg;
+  reg.sinkName = "DARWINOSX";
+  reg.createFunc = CAESinkDARWINOSX::Create;
+  reg.enumerateFunc = CAESinkDARWINOSX::EnumerateDevicesEx;
+  AE::CAESinkFactory::RegisterSink(reg);
+}
+
+IAESink* CAESinkDARWINOSX::Create(std::string &device, AEAudioFormat &desiredFormat)
+{
+  IAESink *sink = new CAESinkDARWINOSX();
+  if (sink->Initialize(desiredFormat, device))
+    return sink;
+
+  delete sink;
+  return nullptr;
 }
 
 bool CAESinkDARWINOSX::Initialize(AEAudioFormat &format, std::string &device)
@@ -408,7 +431,7 @@ unsigned int CAESinkDARWINOSX::AddPackets(uint8_t **data, unsigned int frames, u
     if (!m_started)
       timeout = 4500;
 
-    // we are using a timer here for beeing sure for timeouts
+    // we are using a timer here for being sure for timeouts
     // condvar can be woken spuriously as signaled
     XbmcThreads::EndTime timer(timeout);
     condVar.wait(mutex, timeout);
@@ -442,7 +465,7 @@ void CAESinkDARWINOSX::Drain()
 
     bytes = m_buffer->GetReadSize();
     // if we timeout and don't
-    // consum bytes - decrease maxNumTimeouts
+    // consume bytes - decrease maxNumTimeouts
     if (timer.IsTimePast() && bytes == totalBytes)
       maxNumTimeouts--;
     totalBytes = bytes;

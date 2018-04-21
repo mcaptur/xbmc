@@ -21,9 +21,8 @@
 #include "TextureBundleXBT.h"
 
 #include "ServiceBroker.h"
-#include "system.h"
 #include "Texture.h"
-#include "GraphicContext.h"
+#include "windowing/GraphicContext.h"
 #include "utils/log.h"
 #include "settings/Settings.h"
 #include "filesystem/SpecialProtocol.h"
@@ -34,9 +33,11 @@
 #include "XBTFReader.h"
 #include <lzo/lzo1x.h>
 
-#ifdef TARGET_WINDOWS
+#ifdef TARGET_WINDOWS_DESKTOP
 #ifdef NDEBUG
 #pragma comment(lib,"lzo2.lib")
+#elif defined _WIN64
+#pragma comment(lib, "lzo2d.lib")
 #else
 #pragma comment(lib, "lzo2-no_idb.lib")
 #endif
@@ -67,7 +68,7 @@ bool CTextureBundleXBT::OpenBundle()
 {
   // Find the correct texture file (skin or theme)
 
-  auto mediaDir = g_graphicsContext.GetMediaDir();
+  auto mediaDir = CServiceBroker::GetWinSystem()->GetGfxContext().GetMediaDir();
   if (mediaDir.empty())
   {
     mediaDir = CSpecialProtocol::TranslatePath(
@@ -83,7 +84,7 @@ bool CTextureBundleXBT::OpenBundle()
     if (!theme.empty() && !StringUtils::EqualsNoCase(theme, "SKINDEFAULT"))
     {
       std::string themeXBT(URIUtils::ReplaceExtension(theme, ".xbt"));
-      m_path = URIUtils::AddFileToFolder(g_graphicsContext.GetMediaDir(), "media", themeXBT);
+      m_path = URIUtils::AddFileToFolder(CServiceBroker::GetWinSystem()->GetGfxContext().GetMediaDir(), "media", themeXBT);
     }
     else
     {
@@ -92,7 +93,7 @@ bool CTextureBundleXBT::OpenBundle()
   }
   else
   {
-    m_path = URIUtils::AddFileToFolder(g_graphicsContext.GetMediaDir(), "media", "Textures.xbt");
+    m_path = URIUtils::AddFileToFolder(CServiceBroker::GetWinSystem()->GetGfxContext().GetMediaDir(), "media", "Textures.xbt");
   }
 
   m_path = CSpecialProtocol::TranslatePathConvertCase(m_path);

@@ -31,11 +31,8 @@ class CDarwinUtils
 {
 public:
   static const char *getIosPlatformString(void);
-  static bool        IsMavericks(void);
-  static bool        IsLion(void); 
-  static bool        IsSnowLeopard(void);
+  static bool        IsMavericksOrHigher(void);
   static bool        DeviceHasRetina(double &scale);
-  static bool        DeviceHasLeakyVDA(void);
   static const char *GetOSReleaseString(void);
   static const char *GetOSVersionString(void);
   static float       GetIOSVersion(void);
@@ -50,7 +47,7 @@ public:
   static int         BatteryLevel(void);
   static void        EnableOSScreenSaver(bool enable);
   static void        ResetSystemIdleTimer();
-  static void        SetScheduling(int message);
+  static void        SetScheduling(bool realtime);
   static void        PrintDebugString(std::string debugString);
   static bool        CFStringRefToString(CFStringRef source, std::string& destination);
   static bool        CFStringRefToUTF8String(CFStringRef source, std::string& destination);

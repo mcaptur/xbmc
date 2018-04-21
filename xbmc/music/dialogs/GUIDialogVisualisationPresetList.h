@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,10 +23,7 @@
 #include "dialogs/GUIDialogSelect.h"
 #include "guilib/GUIDialog.h"
 
-namespace ADDON
-{
-  class CVisualisation;
-}
+class CGUIVisualisationControl;
 class CFileItemList;
 
 class CGUIDialogVisualisationPresetList : public CGUIDialogSelect
@@ -41,6 +38,6 @@ protected:
   void OnSelect(int idx) override;
 
 private:
-  void SetVisualisation(ADDON::CVisualisation *addon);
-  ADDON::CVisualisation* m_viz;
+  void SetVisualisation(CGUIVisualisationControl *addon);
+  CGUIVisualisationControl* m_viz;
 };

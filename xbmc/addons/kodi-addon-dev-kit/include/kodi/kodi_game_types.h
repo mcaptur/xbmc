@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2014-2016 Team Kodi
+ *      Copyright (C) 2014-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -20,18 +20,13 @@
 #ifndef KODI_GAME_TYPES_H_
 #define KODI_GAME_TYPES_H_
 
-/* current game API version */
-#define GAME_API_VERSION                "1.0.28"
-
-/* min. game API version */
-#define GAME_MIN_API_VERSION            "1.0.28"
+#include "versions.h"
+#include "xbmc_addon_types.h"
 
 #include <stddef.h>
 #include <stdint.h>
 
-#ifdef TARGET_WINDOWS
-  #include <windows.h>
-#else
+#ifndef TARGET_WINDOWS
   #ifndef __cdecl
     #define __cdecl
   #endif
@@ -45,10 +40,8 @@
 #undef PRAGMA_PACK_END
 
 #if defined(__GNUC__)
-  #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
-    #define ATTRIBUTE_PACKED __attribute__ ((packed))
-    #define PRAGMA_PACK 0
-  #endif
+  #define ATTRIBUTE_PACKED __attribute__ ((packed))
+  #define PRAGMA_PACK 0
 #endif
 
 #if !defined(ATTRIBUTE_PACKED)
@@ -61,6 +54,9 @@
 #else
 #include "input/XBMC_vkeys.h"
 #endif
+
+/*! Port ID used when topology is unknown */
+#define DEFAULT_PORT_ID  "1"
 
 #ifdef __cplusplus
 extern "C" {
@@ -164,17 +160,11 @@ typedef enum GAME_HW_CONTEXT_TYPE
   GAME_HW_CONTEXT_OPENGLES3,   // GLES 3.0
 } GAME_HW_CONTEXT_TYPE;
 
-typedef enum GAME_INPUT_PORT
-{
-  GAME_INPUT_PORT_JOYSTICK_START = 0, // Non-negative values are for joystick ports
-  GAME_INPUT_PORT_KEYBOARD = -1,
-  GAME_INPUT_PORT_MOUSE = -2,
-} GAME_INPUT_PORT;
-
 typedef enum GAME_INPUT_EVENT_SOURCE
 {
   GAME_INPUT_EVENT_DIGITAL_BUTTON,
   GAME_INPUT_EVENT_ANALOG_BUTTON,
+  GAME_INPUT_EVENT_AXIS,
   GAME_INPUT_EVENT_ANALOG_STICK,
   GAME_INPUT_EVENT_ACCELEROMETER,
   GAME_INPUT_EVENT_KEY,
@@ -185,17 +175,17 @@ typedef enum GAME_INPUT_EVENT_SOURCE
 
 typedef enum GAME_KEY_MOD
 {
-  GAME_KEY_MOD_NONE = 0x00,
+  GAME_KEY_MOD_NONE = 0x0000,
 
-  GAME_KEY_MOD_SHIFT = 0x01,
-  GAME_KEY_MOD_CTRL = 0x02,
-  GAME_KEY_MOD_ALT = 0x04,
-  GAME_KEY_MOD_RALT = 0x08,
-  GAME_KEY_MOD_META = 0x10,
+  GAME_KEY_MOD_SHIFT = 0x0001,
+  GAME_KEY_MOD_CTRL = 0x0002,
+  GAME_KEY_MOD_ALT = 0x0004,
+  GAME_KEY_MOD_META = 0x0008,
+  GAME_KEY_MOD_SUPER = 0x0010,
 
-  GAME_KEY_MOD_NUMLOCK = 0x20,
-  GAME_KEY_MOD_CAPSLOCK = 0x40,
-  GAME_KEY_MOD_SCROLLOCK = 0x80,
+  GAME_KEY_MOD_NUMLOCK = 0x0100,
+  GAME_KEY_MOD_CAPSLOCK = 0x0200,
+  GAME_KEY_MOD_SCROLLOCK = 0x0400,
 } GAME_KEY_MOD;
 
 /*! Returned from game_get_region() */
@@ -207,9 +197,9 @@ typedef enum GAME_REGION
 } GAME_REGION;
 
 /*!
-* Special game types passed into game_load_game_special(). Only used when
-* multiple ROMs are required.
-*/
+ * Special game types passed into game_load_game_special(). Only used when
+ * multiple ROMs are required.
+ */
 typedef enum SPECIAL_GAME_TYPE
 {
   SPECIAL_GAME_TYPE_BSX,
@@ -281,9 +271,21 @@ typedef enum GAME_ROTATION
   GAME_ROTATION_270_CW,
 } GAME_ROTATION;
 
+/*!
+ * \brief Type of port on the virtual game console
+ */
+typedef enum GAME_PORT_TYPE
+{
+  GAME_PORT_UNKNOWN,
+  GAME_PORT_KEYBOARD,
+  GAME_PORT_MOUSE,
+  GAME_PORT_CONTROLLER,
+} GAME_PORT_TYPE;
+
 typedef struct game_controller
 {
   const char*  controller_id;
+  bool         provides_input; // False for multitaps
   unsigned int digital_button_count;
   unsigned int analog_button_count;
   unsigned int analog_stick_count;
@@ -294,6 +296,48 @@ typedef struct game_controller
   unsigned int motor_count;
 } ATTRIBUTE_PACKED game_controller;
 
+struct game_input_port;
+
+/*!
+ * \brief Device that can provide input
+ */
+typedef struct game_input_device
+{
+  const char*      controller_id; // ID used in the Kodi controller API
+  const char*      port_address;
+  game_input_port* available_ports;
+  unsigned int     port_count;
+} ATTRIBUTE_PACKED game_input_device;
+
+/*!
+ * \brief Port that can provide input
+ *
+ * Ports can accept multiple devices and devices can have multiple ports, so
+ * the topology of possible configurations is a tree structure of alternating
+ * port and device nodes.
+ */
+typedef struct game_input_port
+{
+  GAME_PORT_TYPE     type;
+  const char*        port_id; // Required for GAME_PORT_CONTROLLER type
+  game_input_device* accepted_devices;
+  unsigned int       device_count;
+} ATTRIBUTE_PACKED game_input_port;
+
+/*!
+ * \brief The input topology is the possible ways to connect input devices
+ *
+ * This represents the logical topology, which is the possible connections that
+ * the game client's logic can handle. It is strictly a subset of the physical
+ * topology. Loops are not allowed.
+ */
+typedef struct game_input_topology
+{
+  game_input_port *ports; //! The list of ports on the virtual game console
+  unsigned int port_count; //! The number of ports
+  int player_limit; //! A limit on the number of input-providing devices, or -1 for no limit
+} ATTRIBUTE_PACKED game_input_topology;
+
 typedef struct game_digital_button_event
 {
   bool         pressed;
@@ -303,6 +347,11 @@ typedef struct game_analog_button_event
 {
   float        magnitude;
 } ATTRIBUTE_PACKED game_analog_button_event;
+
+typedef struct game_axis_event
+{
+  float        position;
+} ATTRIBUTE_PACKED game_axis_event;
 
 typedef struct game_analog_stick_event
 {
@@ -320,7 +369,14 @@ typedef struct game_accelerometer_event
 typedef struct game_key_event
 {
   bool         pressed;
-  XBMCVKey     character;
+
+  /*!
+   * If the keypress generates a printing character, the unicode value
+   * contains the character generated. If the key is a non-printing character,
+   * e.g. a function or arrow key, the unicode value is zero.
+   */
+  uint32_t unicode;
+
   GAME_KEY_MOD modifiers;
 } ATTRIBUTE_PACKED game_key_event;
 
@@ -345,13 +401,15 @@ typedef struct game_motor_event
 typedef struct game_input_event
 {
   GAME_INPUT_EVENT_SOURCE type;
-  int                     port;
   const char*             controller_id;
+  GAME_PORT_TYPE          port_type;
+  const char*             port_address;
   const char*             feature_name;
   union
   {
     struct game_digital_button_event digital_button;
     struct game_analog_button_event  analog_button;
+    struct game_axis_event           axis;
     struct game_analog_stick_event   analog_stick;
     struct game_accelerometer_event  accelerometer;
     struct game_key_event            key;
@@ -402,7 +460,7 @@ struct game_hw_info
 };
 
 /*! Properties passed to the ADDON_Create() method of a game client */
-typedef struct game_client_properties
+typedef struct AddonProps_Game
 {
   /*!
    * The path of the game client being loaded.
@@ -451,13 +509,33 @@ typedef struct game_client_properties
    * Number of extensions provided
    */
   unsigned int extension_count;
-} game_client_properties;
+} AddonProps_Game;
 
+typedef AddonProps_Game game_client_properties;
+  
 /*! Structure to transfer the methods from kodi_game_dll.h to Kodi */
-typedef struct GameClient
+
+typedef struct AddonToKodiFuncTable_Game
 {
-  const char* (__cdecl* GetGameAPIVersion)(void);
-  const char* (__cdecl* GetMininumGameAPIVersion)(void);
+  KODI_HANDLE kodiInstance;
+
+  void (*CloseGame)(void* kodiInstance);
+  int (*OpenPixelStream)(void* kodiInstance, GAME_PIXEL_FORMAT format, unsigned int width, unsigned int height, GAME_VIDEO_ROTATION rotation);
+  int (*OpenVideoStream)(void* kodiInstance, GAME_VIDEO_CODEC codec);
+  int (*OpenPCMStream)(void* kodiInstance, GAME_PCM_FORMAT format, const GAME_AUDIO_CHANNEL* channel_map);
+  int(*OpenAudioStream)(void* kodiInstance, GAME_AUDIO_CODEC codec, const GAME_AUDIO_CHANNEL* channel_map);
+  void (*AddStreamData)(void* kodiInstance, GAME_STREAM_TYPE stream, const uint8_t* data, unsigned int size);
+  void (*CloseStream)(void* kodiInstance, GAME_STREAM_TYPE stream);
+  void (*EnableHardwareRendering)(void* kodiInstance, const game_hw_info* hw_info);
+  uintptr_t (*HwGetCurrentFramebuffer)(void* kodiInstance);
+  game_proc_address_t (*HwGetProcAddress)(void* kodiInstance, const char* symbol);
+  void (*RenderFrame)(void* kodiInstance);
+  bool (*InputEvent)(void* kodiInstance, const game_input_event* event);
+
+} AddonToKodiFuncTable_Game;
+
+typedef struct KodiToAddonFuncTable_Game
+{
   GAME_ERROR  (__cdecl* LoadGame)(const char*);
   GAME_ERROR  (__cdecl* LoadGameSpecial)(SPECIAL_GAME_TYPE, const char**, size_t);
   GAME_ERROR  (__cdecl* LoadStandalone)(void);
@@ -469,16 +547,27 @@ typedef struct GameClient
   GAME_ERROR  (__cdecl* Reset)(void);
   GAME_ERROR  (__cdecl* HwContextReset)(void);
   GAME_ERROR  (__cdecl* HwContextDestroy)(void);
-  void        (__cdecl* UpdatePort)(int, bool, const game_controller*);
-  bool        (__cdecl* HasFeature)(const char* controller_id, const char* feature_name);
+  bool        (__cdecl* HasFeature)(const char*, const char*);
+  game_input_topology* (__cdecl* GetTopology)();
+  void        (__cdecl* FreeTopology)(game_input_topology*);
+  bool        (__cdecl* EnableKeyboard)(bool, const game_controller*);
+  bool        (__cdecl* EnableMouse)(bool, const game_controller*);
+  bool        (__cdecl* ConnectController)(bool, const char*, const game_controller*);
   bool        (__cdecl* InputEvent)(const game_input_event*);
   size_t      (__cdecl* SerializeSize)(void);
   GAME_ERROR  (__cdecl* Serialize)(uint8_t*, size_t);
   GAME_ERROR  (__cdecl* Deserialize)(const uint8_t*, size_t);
   GAME_ERROR  (__cdecl* CheatReset)(void);
-  GAME_ERROR  (__cdecl* GetMemory)(GAME_MEMORY, const uint8_t**, size_t*);
+  GAME_ERROR  (__cdecl* GetMemory)(GAME_MEMORY, uint8_t**, size_t*);
   GAME_ERROR  (__cdecl* SetCheat)(unsigned int, bool, const char*);
-} GameClient;
+} KodiToAddonFuncTable_Game;
+
+typedef struct AddonInstance_Game
+{
+  AddonProps_Game props;
+  AddonToKodiFuncTable_Game toKodi;
+  KodiToAddonFuncTable_Game toAddon;
+} AddonInstance_Game;
 
 #ifdef __cplusplus
 }

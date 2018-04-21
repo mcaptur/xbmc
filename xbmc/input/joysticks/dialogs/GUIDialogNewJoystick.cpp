@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2016 Team Kodi
+ *      Copyright (C) 2016-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -20,11 +20,13 @@
 
 #include "GUIDialogNewJoystick.h"
 #include "ServiceBroker.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/WindowIDs.h"
 #include "messaging/helpers/DialogHelper.h"
 #include "settings/Settings.h"
 
+using namespace KODI;
 using namespace JOYSTICK;
 
 CGUIDialogNewJoystick::CGUIDialogNewJoystick() :
@@ -40,7 +42,7 @@ void CGUIDialogNewJoystick::ShowAsync()
     bShow = false;
   else if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_INPUT_ASKNEWCONTROLLERS))
     bShow = false;
-  else if (g_windowManager.IsWindowActive(WINDOW_DIALOG_GAME_CONTROLLERS, false))
+  else if (CServiceBroker::GetGUI()->GetWindowManager().IsWindowActive(WINDOW_DIALOG_GAME_CONTROLLERS, false))
     bShow = false;
 
   if (bShow)
@@ -49,13 +51,13 @@ void CGUIDialogNewJoystick::ShowAsync()
 
 void CGUIDialogNewJoystick::Process()
 {
-  using namespace KODI::MESSAGING::HELPERS;
+  using namespace MESSAGING::HELPERS;
 
   // "New controller detected"
   // "A new controller has been detected. Configuration can be done at any time in "Settings -> System Settings -> Input". Would you like to configure it now?"
   if (ShowYesNoDialogText(CVariant{ 35011 }, CVariant{ 35012 }) == DialogResponse::YES)
   {
-    g_windowManager.ActivateWindow(WINDOW_DIALOG_GAME_CONTROLLERS);
+    CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(WINDOW_DIALOG_GAME_CONTROLLERS);
   }
   else
   {

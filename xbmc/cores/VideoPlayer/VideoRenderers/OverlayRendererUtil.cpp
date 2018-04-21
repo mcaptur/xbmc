@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,14 +18,12 @@
  *
  */
 
-#include "system.h"
 #include "OverlayRendererUtil.h"
 #include "ServiceBroker.h"
 #include "cores/VideoPlayer/DVDCodecs/Overlay/DVDOverlayImage.h"
 #include "cores/VideoPlayer/DVDCodecs/Overlay/DVDOverlaySpu.h"
 #include "cores/VideoPlayer/DVDCodecs/Overlay/DVDOverlaySSA.h"
-#include "windowing/WindowingFactory.h"
-#include "guilib/GraphicContext.h"
+#include "windowing/GraphicContext.h"
 #include "settings/Settings.h"
 
 namespace OVERLAY {
@@ -183,7 +181,7 @@ uint32_t* convert_rgba(CDVDOverlaySpu* o, bool mergealpha
   return rgba;
 }
 
-bool convert_quad(ASS_Image* images, SQuads& quads)
+bool convert_quad(ASS_Image* images, SQuads& quads, int max_x)
 {
   ASS_Image* img;
 
@@ -205,8 +203,8 @@ bool convert_quad(ASS_Image* images, SQuads& quads)
   if (quads.count == 0)
     return false;
 
-  if (quads.size_x > (int)g_Windowing.GetMaxTextureSize())
-    quads.size_x = g_Windowing.GetMaxTextureSize();
+  if (quads.size_x > max_x)
+    quads.size_x = max_x;
 
   int curr_x = 0;
   int curr_y = 0;
@@ -236,8 +234,8 @@ bool convert_quad(ASS_Image* images, SQuads& quads)
 
   // allocate space for the glyph positions and texturedata
 
-  quads.quad = (SQuad*)  calloc(quads.count, sizeof(SQuad));
-  quads.data = (uint8_t*)calloc(quads.size_x * quads.size_y, 1);
+  quads.quad = static_cast<SQuad*>(calloc(quads.count, sizeof(SQuad)));
+  quads.data = static_cast<uint8_t*>(calloc(quads.size_x * quads.size_y, 1));
 
   SQuad*   v    = quads.quad;
   uint8_t* data = quads.data;
@@ -301,11 +299,11 @@ int GetStereoscopicDepth()
 {
   int depth = 0;
 
-  if(g_graphicsContext.GetStereoMode() != RENDER_STEREO_MODE_MONO
-  && g_graphicsContext.GetStereoMode() != RENDER_STEREO_MODE_OFF)
+  if(CServiceBroker::GetWinSystem()->GetGfxContext().GetStereoMode() != RENDER_STEREO_MODE_MONO
+  && CServiceBroker::GetWinSystem()->GetGfxContext().GetStereoMode() != RENDER_STEREO_MODE_OFF)
   {
     depth  = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_SUBTITLES_STEREOSCOPICDEPTH);
-    depth *= (g_graphicsContext.GetStereoView() == RENDER_STEREO_VIEW_LEFT ? 1 : -1);
+    depth *= (CServiceBroker::GetWinSystem()->GetGfxContext().GetStereoView() == RENDER_STEREO_VIEW_LEFT ? 1 : -1);
   }
 
   return depth;

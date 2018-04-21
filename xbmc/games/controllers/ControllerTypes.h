@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2015-2016 Team Kodi
+ *      Copyright (C) 2015-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -22,9 +22,23 @@
 #include <memory>
 #include <vector>
 
+namespace KODI
+{
 namespace GAME
 {
   class CController;
-  typedef std::shared_ptr<CController> ControllerPtr;
-  typedef std::vector<ControllerPtr>   ControllerVector;
+  using ControllerPtr = std::shared_ptr<CController>;
+  using ControllerVector = std::vector<ControllerPtr>;
+
+  /*!
+   * \brief Type of input provided by a hardware or controller port
+   */
+  enum class PORT_TYPE
+  {
+    UNKNOWN,
+    KEYBOARD,
+    MOUSE,
+    CONTROLLER,
+  };
+}
 }

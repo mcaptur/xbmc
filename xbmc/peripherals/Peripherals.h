@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -24,38 +24,53 @@
 #include "EventScanner.h"
 #include "bus/PeripheralBus.h"
 #include "devices/Peripheral.h"
-#include "games/ports/PortMapper.h" //! @todo Find me a better place
+#include "interfaces/IAnnouncer.h"
 #include "messaging/IMessageTarget.h"
 #include "settings/lib/ISettingCallback.h"
-#include "system.h"
 #include "threads/CriticalSection.h"
 #include "threads/Thread.h"
 #include "utils/Observer.h"
 
 class CFileItemList;
+class CInputManager;
 class CSetting;
 class CSettingsCategory;
 class TiXmlElement;
 class CAction;
 class CKey;
 
+namespace KODI
+{
+namespace GAME
+{
+  class CControllerManager;
+}
+
 namespace JOYSTICK
 {
   class IButtonMapper;
 }
+}
+
+namespace ANNOUNCEMENT
+{
+  class CAnnouncementManager;
+}
 
 namespace PERIPHERALS
 {
-  #define g_peripherals CPeripherals::GetInstance()
-
   class CPeripherals :  public ISettingCallback,
                         public Observable,
                         public KODI::MESSAGING::IMessageTarget,
-                        public IEventScannerCallback
+                        public IEventScannerCallback,
+                        public ANNOUNCEMENT::IAnnouncer
   {
   public:
-    static CPeripherals &GetInstance();
-    virtual ~CPeripherals();
+    explicit CPeripherals(ANNOUNCEMENT::CAnnouncementManager &announcements,
+                          CInputManager &inputManager,
+                          KODI::GAME::CControllerManager &controllerProfiles);
+
+    ~CPeripherals() override;
 
     /*!
      * @brief Initialise the peripherals manager.
@@ -89,6 +104,13 @@ namespace PERIPHERALS
      * @return The bus or NULL if no device was found.
      */
     PeripheralBusPtr GetBusWithDevice(const std::string &strLocation) const;
+
+    /*!
+     * @brief Check if any busses support the given feature
+     * @param feature The feature to check for
+     * @return True if a bus supports the feature, false otherwise
+     */
+    bool SupportsFeature(PeripheralFeature feature) const;
 
     /*!
      * @brief Get all peripheral instances that have the given feature.
@@ -210,11 +232,10 @@ namespace PERIPHERALS
     bool GetNextKeypress(float frameTime, CKey &key);
 
     /*!
-     * @brief Request event scan rate
-     * @brief rateHz The rate in Hz
-     * @return A handle that unsets its rate when expired
+     * @brief Register with the event scanner to control scan timing
+     * @return A handle that unregisters itself when expired
      */
-    EventRateHandle SetEventScanRate(double rateHz) { return m_eventScanner.SetRate(rateHz); }
+    EventPollHandlePtr RegisterEventPoller() { return m_eventScanner.RegisterPollHandle(); }
 
     /*!
      * 
@@ -225,7 +246,12 @@ namespace PERIPHERALS
      * @brief Request peripherals with the specified feature to perform a quick test
      * @return true if any peripherals support the feature, false otherwise
      */
-    bool TestFeature(PeripheralFeature feature);
+    void TestFeature(PeripheralFeature feature);
+
+    /*!
+     * \brief Request all devices with power-off support to power down
+     */
+    void PowerOffDevices();
 
     bool SupportsCEC() const
     {
@@ -237,7 +263,7 @@ namespace PERIPHERALS
     }
 
     // implementation of IEventScannerCallback
-    virtual void ProcessEvents(void) override;
+    void ProcessEvents(void) override;
 
     /*!
      * \brief Initialize button mapping
@@ -247,10 +273,8 @@ namespace PERIPHERALS
      * controller profiles.
      *
      * If user input is required, a blocking dialog may be shown.
-     *
-     * \return True if button mapping is enabled for at least one bus
      */
-    bool EnableButtonMapping();
+    void EnableButtonMapping();
 
     /*!
      * \brief Get an add-on that can provide button maps for a device
@@ -277,38 +301,53 @@ namespace PERIPHERALS
      * \ref CPeripheral::RegisterJoystickButtonMapper for what is done to the
      * mapper after being given to the peripheral.
      */
-    void RegisterJoystickButtonMapper(JOYSTICK::IButtonMapper* mapper);
+    void RegisterJoystickButtonMapper(KODI::JOYSTICK::IButtonMapper* mapper);
 
     /*!
      * \brief Unregister a button mapper interface
      * \param mapper The button mapper
      */
-    void UnregisterJoystickButtonMapper(JOYSTICK::IButtonMapper* mapper);
+    void UnregisterJoystickButtonMapper(KODI::JOYSTICK::IButtonMapper* mapper);
 
-    virtual void OnSettingChanged(const CSetting *setting) override;
-    virtual void OnSettingAction(const CSetting *setting) override;
+    // implementation of ISettingCallback
+    void OnSettingChanged(std::shared_ptr<const CSetting> setting) override;
+    void OnSettingAction(std::shared_ptr<const CSetting> setting) override;
 
-    virtual void OnApplicationMessage(KODI::MESSAGING::ThreadMessage* pMsg) override;
-    virtual int GetMessageMask() override;
+    // implementation of IMessageTarget
+    void OnApplicationMessage(KODI::MESSAGING::ThreadMessage* pMsg) override;
+    int GetMessageMask() override;
+
+    // implementation of IAnnouncer
+    void Announce(ANNOUNCEMENT::AnnouncementFlag flag, const char *sender, const char *message, const CVariant &data) override;
+
+    /*!
+     * \brief Access the input manager passed to the constructor
+     */
+    CInputManager &GetInputManager() { return m_inputManager; }
+
+    /*!
+     * \brief Access controller profiles through the construction parameter
+     */
+    KODI::GAME::CControllerManager &GetControllerProfiles() { return m_controllerProfiles; }
 
   private:
-    CPeripherals();
     bool LoadMappings();
     bool GetMappingForDevice(const CPeripheralBus &bus, PeripheralScanResult& result) const;
     static void GetSettingsFromMappingsFile(TiXmlElement *xmlNode, std::map<std::string, PeripheralDeviceSetting> &m_settings);
 
     void OnDeviceChanged();
 
-    bool                                 m_bInitialised;
-    bool                                 m_bIsStarted;
+    // Construction parameters
+    ANNOUNCEMENT::CAnnouncementManager &m_announcements;
+    CInputManager &m_inputManager;
+    KODI::GAME::CControllerManager &m_controllerProfiles;
+
 #if !defined(HAVE_LIBCEC)
-    bool                                 m_bMissingLibCecWarningDisplayed;
+    bool                                 m_bMissingLibCecWarningDisplayed = false;
 #endif
     std::vector<PeripheralBusPtr>        m_busses;
     std::vector<PeripheralDeviceMapping> m_mappings;
     CEventScanner                        m_eventScanner;
-	GAME::CPortMapper                    m_portMapper; //! @todo Find me a better place
-    CCriticalSection                     m_critSection;
     CCriticalSection                     m_critSectionBusses;
     CCriticalSection                     m_critSectionMappings;
   };

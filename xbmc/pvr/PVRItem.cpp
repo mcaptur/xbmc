@@ -18,22 +18,22 @@
  *
  */
 
+#include "PVRItem.h"
+
 #include "FileItem.h"
-#include "epg/EpgInfoTag.h"
+#include "ServiceBroker.h"
+#include "utils/log.h"
+
+#include "pvr/PVRManager.h"
 #include "pvr/channels/PVRChannel.h"
+#include "pvr/epg/EpgInfoTag.h"
 #include "pvr/recordings/PVRRecording.h"
 #include "pvr/timers/PVRTimerInfoTag.h"
 #include "pvr/timers/PVRTimers.h"
-#include "pvr/PVRManager.h"
-#include "utils/log.h"
-
-#include "PVRItem.h"
-
-using namespace EPG;
 
 namespace PVR
 {
-  CEpgInfoTagPtr CPVRItem::GetEpgInfoTag() const
+  CPVREpgInfoTagPtr CPVRItem::GetEpgInfoTag() const
   {
     if (m_item->IsEPG())
     {
@@ -51,7 +51,30 @@ namespace PVR
     {
       CLog::Log(LOGERROR, "CPVRItem - %s - unsupported item type!", __FUNCTION__);
     }
-    return CEpgInfoTagPtr();
+    return CPVREpgInfoTagPtr();
+  }
+
+  CPVREpgInfoTagPtr CPVRItem::GetNextEpgInfoTag() const
+  {
+    if (m_item->IsEPG())
+    {
+      return m_item->GetEPGInfoTag()->GetNextEvent();
+    }
+    else if (m_item->IsPVRChannel())
+    {
+      return m_item->GetPVRChannelInfoTag()->GetEPGNext();
+    }
+    else if (m_item->IsPVRTimer())
+    {
+      const CPVREpgInfoTagPtr current = m_item->GetPVRTimerInfoTag()->GetEpgInfoTag();
+      if (current)
+        return current->GetNextEvent();
+    }
+    else
+    {
+      CLog::Log(LOGERROR, "CPVRItem - %s - unsupported item type!", __FUNCTION__);
+    }
+    return CPVREpgInfoTagPtr();
   }
 
   CPVRChannelPtr CPVRItem::GetChannel() const
@@ -62,13 +85,11 @@ namespace PVR
     }
     else if (m_item->IsEPG())
     {
-      return m_item->GetEPGInfoTag()->ChannelTag();
+      return m_item->GetEPGInfoTag()->Channel();
     }
     else if (m_item->IsPVRTimer())
     {
-      const CEpgInfoTagPtr epgTag(m_item->GetPVRTimerInfoTag()->GetEpgInfoTag());
-      if (epgTag)
-        return epgTag->ChannelTag();
+      return m_item->GetPVRTimerInfoTag()->Channel();
     }
     else
     {
@@ -90,14 +111,14 @@ namespace PVR
     else if (m_item->IsPVRChannel())
     {
       CPVRTimerInfoTagPtr timer;
-      const CEpgInfoTagPtr epgTag(m_item->GetPVRChannelInfoTag()->GetEPGNow());
+      const CPVREpgInfoTagPtr epgTag(m_item->GetPVRChannelInfoTag()->GetEPGNow());
       if (epgTag)
-        timer = epgTag->Timer(); // cheap method, but not reliable as timers get set at epg tags asychrounously
+        timer = epgTag->Timer(); // cheap method, but not reliable as timers get set at epg tags asynchronously
 
       if (timer)
         return timer;
 
-      return g_PVRTimers->GetActiveTimerForChannel(m_item->GetPVRChannelInfoTag()); // more expensive, but reliable and works even for channels with no epg data
+      return CServiceBroker::GetPVRManager().Timers()->GetActiveTimerForChannel(m_item->GetPVRChannelInfoTag()); // more expensive, but reliable and works even for channels with no epg data
     }
     else
     {
@@ -131,7 +152,7 @@ namespace PVR
     }
     else if (m_item->IsEPG())
     {
-      const CPVRChannelPtr channel(m_item->GetEPGInfoTag()->ChannelTag());
+      const CPVRChannelPtr channel(m_item->GetEPGInfoTag()->Channel());
       return (channel && channel->IsRadio());
     }
     else if (m_item->IsPVRRecording())

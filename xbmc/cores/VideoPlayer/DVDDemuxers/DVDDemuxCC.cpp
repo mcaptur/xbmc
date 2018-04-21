@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2014 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
  */
 
 #include "DVDDemuxUtils.h"
-#include "DVDClock.h"
+#include "cores/VideoPlayer/Interface/Addon/TimingConstants.h"
 #include "DVDDemuxCC.h"
 #include "cores/VideoPlayer/DVDCodecs/Overlay/contrib/cc_decoder708.h"
 
@@ -74,8 +74,10 @@ private:
 
 class CCaptionBlock
 {
+  CCaptionBlock(const CCaptionBlock&) = delete;
+  CCaptionBlock& operator=(const CCaptionBlock&) = delete;
 public:
-  CCaptionBlock(int size)
+  explicit CCaptionBlock(int size)
   {
     m_data = (uint8_t*)malloc(size);
     m_size = size;
@@ -294,7 +296,7 @@ DemuxPacket* CDVDDemuxCC::Read(DemuxPacket *pSrcPacket)
 
 void CDVDDemuxCC::Handler(int service, void *userdata)
 {
-  CDVDDemuxCC *ctx = (CDVDDemuxCC*)userdata;
+  CDVDDemuxCC *ctx = static_cast<CDVDDemuxCC*>(userdata);
 
   unsigned int idx;
 
@@ -324,6 +326,7 @@ void CDVDDemuxCC::Handler(int service, void *userdata)
   {
     CDemuxStreamSubtitle stream;
     strcpy(stream.language, "cc");
+    stream.flags = FLAG_HEARING_IMPAIRED;
     stream.codec = AV_CODEC_ID_TEXT;
     stream.uniqueId = service;
     ctx->m_streams.push_back(stream);

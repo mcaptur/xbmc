@@ -27,6 +27,7 @@
 #include "utils/URIUtils.h"
 #include "video/VideoInfoTag.h"
 #include "music/tags/MusicInfoTag.h"
+#include <inttypes.h>
 
 using namespace PLAYLIST;
 using namespace XFILE;
@@ -61,11 +62,9 @@ const char* CPlayListM3U::OffsetMarker = "#EXT-KX-OFFSET";
 //   playlist_800.m3u8
 
 
-CPlayListM3U::CPlayListM3U(void)
-{}
+CPlayListM3U::CPlayListM3U(void) = default;
 
-CPlayListM3U::~CPlayListM3U(void)
-{}
+CPlayListM3U::~CPlayListM3U(void) = default;
 
 
 bool CPlayListM3U::Load(const std::string& strFileName)
@@ -75,7 +74,7 @@ bool CPlayListM3U::Load(const std::string& strFileName)
   std::string strInfo;
   std::vector<std::pair<std::string, std::string> > properties;
 
-  long lDuration = 0;
+  int lDuration = 0;
   int iStartOffset = 0;
   int iEndOffset = 0;
 
@@ -169,7 +168,7 @@ bool CPlayListM3U::Load(const std::string& strFileName)
           strInfo = URIUtils::GetFileName(strFileName);
         }
 
-        // should substitition occur befor or after charset conversion??
+        // should substitution occur before or after charset conversion??
         strFileName = URIUtils::SubstitutePath(strFileName);
 
         // Get the full path file name and add it to the the play list
@@ -186,7 +185,7 @@ bool CPlayListM3U::Load(const std::string& strFileName)
           newItem->GetMusicInfoTag()->SetLoaded();
           newItem->GetMusicInfoTag()->SetTitle(strInfo);
           if (iEndOffset)
-            lDuration = (iEndOffset - iStartOffset + 37) / 75;
+            lDuration = static_cast<int>(CUtil::ConvertMilliSecsToSecsIntRounded(iEndOffset - iStartOffset));
         }
         if (newItem->IsVideo() && !newItem->HasVideoInfoTag()) // File is a video and needs a VideoInfoTag
           newItem->GetVideoInfoTag()->Reset(); // Force VideoInfoTag creation
@@ -196,6 +195,11 @@ bool CPlayListM3U::Load(const std::string& strFileName)
         {
           newItem->SetProperty(prop.first, prop.second);
         }
+
+        newItem->SetMimeType(newItem->GetProperty("mimetype").asString());
+        if (!newItem->GetMimeType().empty())
+          newItem->SetContentLookup(false);
+
         Add(newItem);
 
         // Reset the values just in case there part of the file have the extended marker
@@ -238,7 +242,7 @@ void CPlayListM3U::Save(const std::string& strFileName) const
       return; // error
     if (item->m_lStartOffset != 0 || item->m_lEndOffset != 0)
     {
-      strLine = StringUtils::Format("%s:%i,%i\n", OffsetMarker, item->m_lStartOffset, item->m_lEndOffset);
+      strLine = StringUtils::Format("%s:%" PRIi64 ",%" PRIi64 "\n", OffsetMarker, item->m_lStartOffset, item->m_lEndOffset);
       file.Write(strLine.c_str(),strLine.size());
     }
     std::string strFileName = ResolveURL(item);

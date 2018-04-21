@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2014-2016 Team Kodi
+ *      Copyright (C) 2014-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -19,44 +19,34 @@
  */
 
 #include "GUIFeatureList.h"
-
 #include "GUIConfigurationWizard.h"
 #include "GUIControllerDefines.h"
-#include "games/controllers/guicontrols/GUIAnalogStickButton.h"
 #include "games/controllers/guicontrols/GUIFeatureControls.h"
-#include "games/controllers/guicontrols/GUIScalarFeatureButton.h"
+#include "games/controllers/guicontrols/GUIFeatureButton.h"
+#include "games/controllers/guicontrols/GUIFeatureFactory.h"
+#include "games/controllers/guicontrols/GUIFeatureTranslator.h"
 #include "games/controllers/Controller.h"
+#include "games/controllers/ControllerFeature.h"
 #include "guilib/GUIButtonControl.h"
 #include "guilib/GUIControlGroupList.h"
 #include "guilib/GUIImage.h"
 #include "guilib/GUILabelControl.h"
 #include "guilib/GUIMessage.h"
 #include "guilib/GUIWindow.h"
+#include "guilib/LocalizeStrings.h"
 #include "messaging/ApplicationMessenger.h"
 
+using namespace KODI;
 using namespace GAME;
 
-CGUIFeatureList::CGUIFeatureList(CGUIWindow* window, const std::string& windowParam) :
+CGUIFeatureList::CGUIFeatureList(CGUIWindow* window) :
   m_window(window),
   m_guiList(nullptr),
   m_guiButtonTemplate(nullptr),
   m_guiGroupTitle(nullptr),
   m_guiFeatureSeparator(nullptr),
-  m_wizard(nullptr)
+  m_wizard(new CGUIConfigurationWizard)
 {
-  if (windowParam.empty())
-  {
-    // Run wizard for all physical controllers
-    m_wizard = new CGUIConfigurationWizard(false);
-  }
-  else
-  {
-    // Run wizard for specified emulated controller
-    unsigned int number;
-    std::istringstream str(windowParam);
-    str >> number;
-    m_wizard = new CGUIConfigurationWizard(true, number);
-  }
 }
 
 CGUIFeatureList::~CGUIFeatureList(void)
@@ -105,32 +95,49 @@ void CGUIFeatureList::Load(const ControllerPtr& controller)
   m_controller = controller;
 
   // Get features
-  const std::vector<CControllerFeature>& features = controller->Layout().Features();
+  const std::vector<CControllerFeature>& features = controller->Features();
 
   // Split into groups
   auto featureGroups = GetFeatureGroups(features);
 
   // Create controls
-  unsigned int featureIndex = 0;
+  m_buttonCount = 0;
   for (auto itGroup = featureGroups.begin(); itGroup != featureGroups.end(); ++itGroup)
   {
     const std::string& groupName = itGroup->groupName;
+    const bool bIsVirtualKey = itGroup->bIsVirtualKey;
+
+    std::vector<CGUIButtonControl*> buttons;
 
     // Create buttons
-    std::vector<CGUIButtonControl*> buttons = GetButtons(itGroup->features, featureIndex);
+    if (bIsVirtualKey)
+    {
+      CGUIButtonControl* button = GetSelectKeyButton(itGroup->features, m_buttonCount);
+      if (button != nullptr)
+        buttons.push_back(button);
+    }
+    else
+    {
+      buttons = GetButtons(itGroup->features, m_buttonCount);
+    }
+
     if (!buttons.empty())
     {
+      // Just in case
+      if (m_buttonCount + buttons.size() >= MAX_FEATURE_COUNT)
+        break;
+
       // Add a separator if the group list isn't empty
       if (m_guiFeatureSeparator && m_guiList->GetTotalSize() > 0)
       {
-        CGUIFeatureSeparator* pSeparator = new CGUIFeatureSeparator(*m_guiFeatureSeparator, featureIndex);
+        CGUIFeatureSeparator* pSeparator = new CGUIFeatureSeparator(*m_guiFeatureSeparator, m_buttonCount);
         m_guiList->AddControl(pSeparator);
       }
 
       // Add the group title
       if (m_guiGroupTitle && !groupName.empty())
       {
-        CGUIFeatureGroupTitle* pGroupTitle = new CGUIFeatureGroupTitle(*m_guiGroupTitle, groupName, featureIndex);
+        CGUIFeatureGroupTitle* pGroupTitle = new CGUIFeatureGroupTitle(*m_guiGroupTitle, groupName, m_buttonCount);
         m_guiList->AddControl(pGroupTitle);
       }
 
@@ -138,46 +145,48 @@ void CGUIFeatureList::Load(const ControllerPtr& controller)
       for (CGUIButtonControl* pButton : buttons)
         m_guiList->AddControl(pButton);
 
-      featureIndex += itGroup->features.size();
+      m_buttonCount += buttons.size();
     }
-
-    // Just in case
-    if (featureIndex >= MAX_FEATURE_COUNT)
-      break;
   }
 }
 
-void CGUIFeatureList::OnSelect(unsigned int index)
+void CGUIFeatureList::OnSelect(unsigned int buttonIndex)
 {
-  const unsigned int featureCount = m_controller->Layout().FeatureCount();
-
   // Generate list of buttons for the wizard
   std::vector<IFeatureButton*> buttons;
-  for ( ; index < featureCount; index++)
+  for ( ; buttonIndex < m_buttonCount; buttonIndex++)
   {
-    IFeatureButton* control = GetButtonControl(index);
-    if (control)
+    IFeatureButton* control = GetButtonControl(buttonIndex);
+    if (control == nullptr)
+      continue;
+
+    if (control->AllowWizard())
       buttons.push_back(control);
+    else
+    {
+      // Only map this button if it's the only one
+      if (buttons.empty())
+        buttons.push_back(control);
+      break;
+    }
   }
 
-  m_wizard->Run(m_controller->ID(), buttons, this);
+  m_wizard->Run(m_controller->ID(), buttons);
 }
 
-void CGUIFeatureList::OnSkipDetected()
+IFeatureButton* CGUIFeatureList::GetButtonControl(unsigned int buttonIndex)
 {
-  //! @todo
-}
+  CGUIControl* control = m_guiList->GetControl(CONTROL_FEATURE_BUTTONS_START + buttonIndex);
 
-IFeatureButton* CGUIFeatureList::GetButtonControl(unsigned int featureIndex)
-{
-  CGUIControl* control = m_guiList->GetControl(CONTROL_FEATURE_BUTTONS_START + featureIndex);
-
-  return dynamic_cast<CGUIFeatureButton*>(control);
+  return static_cast<IFeatureButton*>(dynamic_cast<CGUIFeatureButton*>(control));
 }
 
 void CGUIFeatureList::CleanupButtons(void)
 {
+  m_buttonCount = 0;
+
   m_wizard->Abort(true);
+  m_wizard->UnregisterKeys();
 
   if (m_guiList)
     m_guiList->ClearAll();
@@ -185,29 +194,60 @@ void CGUIFeatureList::CleanupButtons(void)
 
 std::vector<CGUIFeatureList::FeatureGroup> CGUIFeatureList::GetFeatureGroups(const std::vector<CControllerFeature>& features)
 {
-  std::vector<CGUIFeatureList::FeatureGroup> groups;
+  std::vector<FeatureGroup> groups;
 
   // Get group names
   std::vector<std::string> groupNames;
   for (const CControllerFeature& feature : features)
   {
-    if (std::find(groupNames.begin(), groupNames.end(), feature.Group()) == groupNames.end())
-      groupNames.push_back(feature.Group());
-  }
+    bool bAdded = false;
 
-  // Divide features into groups
-  for (std::string& groupName : groupNames)
-  {
-    FeatureGroup group = { groupName };
-    for (const CControllerFeature& feature : features)
+    if (!groups.empty())
     {
-      if (feature.Group() == groupName)
-        group.features.push_back(feature);
+      FeatureGroup &previousGroup = *groups.rbegin();
+      if (feature.CategoryLabel() == previousGroup.groupName)
+      {
+        // Add feature to previous group
+        previousGroup.features.emplace_back(feature);
+        bAdded = true;
+
+        // If feature is a key, add it to the preceding virtual group as well
+        if (feature.Category() == JOYSTICK::FEATURE_CATEGORY::KEY && groups.size() >= 2)
+        {
+          FeatureGroup &virtualGroup = *(groups.rbegin() + 1);
+          if (virtualGroup.bIsVirtualKey)
+            virtualGroup.features.emplace_back(feature);
+        }
+      }
     }
-    groups.emplace_back(std::move(group));
+
+    if (!bAdded)
+    {
+      // If feature is a key, create a virtual group that allows the user to
+      // select which key to map
+      if (feature.Category() == JOYSTICK::FEATURE_CATEGORY::KEY)
+      {
+        FeatureGroup virtualGroup;
+        virtualGroup.groupName = g_localizeStrings.Get(35166); // "All keys"
+        virtualGroup.bIsVirtualKey = true;
+        virtualGroup.features.emplace_back(feature);
+        groups.emplace_back(std::move(virtualGroup));
+      }
+
+      // Create new group and add feature
+      FeatureGroup group;
+      group.groupName = feature.CategoryLabel();
+      group.features.emplace_back(feature);
+      groups.emplace_back(std::move(group));
+    }
   }
 
   return groups;
+}
+
+bool CGUIFeatureList::HasButton(JOYSTICK::FEATURE_TYPE type) const
+{
+  return CGUIFeatureTranslator::GetButtonType(type) != BUTTON_TYPE::UNKNOWN;
 }
 
 std::vector<CGUIButtonControl*> CGUIFeatureList::GetButtons(const std::vector<CControllerFeature>& features, unsigned int startIndex)
@@ -215,34 +255,32 @@ std::vector<CGUIButtonControl*> CGUIFeatureList::GetButtons(const std::vector<CC
   std::vector<CGUIButtonControl*> buttons;
 
   // Create buttons
-  unsigned int featureIndex = startIndex;
+  unsigned int buttonIndex = startIndex;
   for (const CControllerFeature& feature : features)
   {
-    CGUIButtonControl* pButton = nullptr;
+    BUTTON_TYPE buttonType = CGUIFeatureTranslator::GetButtonType(feature.Type());
 
-    // Create button
-    switch (feature.Type())
-    {
-      case JOYSTICK::FEATURE_TYPE::SCALAR:
-      {
-        pButton = new CGUIScalarFeatureButton(*m_guiButtonTemplate, m_wizard, feature, featureIndex);
-        break;
-      }
-      case JOYSTICK::FEATURE_TYPE::ANALOG_STICK:
-      {
-        pButton = new CGUIAnalogStickButton(*m_guiButtonTemplate, m_wizard, feature, featureIndex);
-        break;
-      }
-      default:
-        break;
-    }
+    CGUIButtonControl* pButton = CGUIFeatureFactory::CreateButton(buttonType, *m_guiButtonTemplate, m_wizard, feature, buttonIndex);
 
     // If successful, add button to result
-    if (pButton)
+    if (pButton != nullptr)
+    {
       buttons.push_back(pButton);
-
-    featureIndex++;
+      buttonIndex++;
+    }
   }
 
   return buttons;
+}
+
+CGUIButtonControl* CGUIFeatureList::GetSelectKeyButton(const std::vector<CControllerFeature>& features, unsigned int buttonIndex)
+{
+  // Expose keycodes to the wizard
+  for (const CControllerFeature& feature : features)
+  {
+    if (feature.Type() == JOYSTICK::FEATURE_TYPE::KEY)
+      m_wizard->RegisterKey(feature);
+  }
+
+  return CGUIFeatureFactory::CreateButton(BUTTON_TYPE::SELECT_KEY, *m_guiButtonTemplate, m_wizard, CControllerFeature(), buttonIndex);
 }

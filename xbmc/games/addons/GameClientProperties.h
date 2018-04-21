@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2012-2016 Team Kodi
+ *      Copyright (C) 2012-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -25,8 +25,10 @@
 #include <string>
 #include <vector>
 
-struct game_client_properties;
+struct AddonProps_Game;
 
+namespace KODI
+{
 namespace GAME
 {
 
@@ -34,12 +36,14 @@ class CGameClient;
 
 /**
  * \ingroup games
- * \brief C++ wrapper for game client properties declared in kodi_game_types.h
+ * \brief C++ wrapper for properties to pass to the DLL
+ *
+ * Game client properties declared in kodi_game_types.h.
  */
 class CGameClientProperties
 {
 public:
-  CGameClientProperties(const CGameClient* parent, game_client_properties*& props);
+  CGameClientProperties(const CGameClient& parent, AddonProps_Game& props);
   ~CGameClientProperties(void) { ReleaseResources(); }
 
   void InitializeProperties(void);
@@ -55,13 +59,13 @@ private:
   const char** GetProxyDllPaths(void);
 
   // Number of proxy DLLs needed to load the game client
-  unsigned int GetProxyDllCount(void) const { return m_proxyDllPaths.size(); }
+  unsigned int GetProxyDllCount(void) const;
 
   // Paths to game resources
   const char** GetResourceDirectories(void);
 
   // Number of resource directories
-  unsigned int GetResourceDirectoryCount(void) const { return m_resourceDirectories.size(); }
+  unsigned int GetResourceDirectoryCount(void) const;
 
   // Equal to special://profile/addon_data/<parent's id>
   const char* GetProfileDirectory(void);
@@ -70,14 +74,15 @@ private:
   const char** GetExtensions(void);
 
   // Number of extensions
-  unsigned int GetExtensionCount(void) const { return m_extensions.size(); }
+  unsigned int GetExtensionCount(void) const;
 
   // Helper functions
   void AddProxyDll(const GameClientPtr& gameClient);
   bool HasProxyDll(const std::string& strLibPath) const;
 
-  const CGameClient* const  m_parent;
-  game_client_properties    m_properties;
+  // Construction parameters
+  const CGameClient& m_parent;
+  AddonProps_Game& m_properties;
 
   // Buffers to hold the strings
   std::string        m_strLibraryPath;
@@ -88,3 +93,4 @@ private:
 };
 
 } // namespace GAME
+} // namespace KODI

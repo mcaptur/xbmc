@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2016 Team Kodi
+ *      Copyright (C) 2016-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -25,11 +25,12 @@
 
 #include <string>
 
+namespace KODI
+{
 namespace GAME
 {
   class CGUIFeatureButton : public CGUIButtonControl,
                             public IFeatureButton
-
   {
   public:
     CGUIFeatureButton(const CGUIButtonControl& buttonTemplate,
@@ -37,14 +38,16 @@ namespace GAME
                       const CControllerFeature& feature,
                       unsigned int index);
 
-    virtual ~CGUIFeatureButton(void) { }
+    virtual ~CGUIFeatureButton() = default;
 
     // implementation of CGUIControl via CGUIButtonControl
     virtual void OnUnFocus(void) override;
 
     // partial implementation of IFeatureButton
     virtual const CControllerFeature& Feature(void) const override { return m_feature; }
-    virtual JOYSTICK::ANALOG_STICK_DIRECTION GetDirection(void) const override { return JOYSTICK::ANALOG_STICK_DIRECTION::UNKNOWN; }
+    virtual INPUT::CARDINAL_DIRECTION GetCardinalDirection(void) const override { return INPUT::CARDINAL_DIRECTION::NONE; }
+    virtual JOYSTICK::WHEEL_DIRECTION GetWheelDirection(void) const override { return JOYSTICK::WHEEL_DIRECTION::NONE; }
+    virtual JOYSTICK::THROTTLE_DIRECTION GetThrottleDirection(void) const override { return JOYSTICK::THROTTLE_DIRECTION::NONE; }
 
   protected:
     bool DoPrompt(const std::string& strPrompt, const std::string& strWarn, const std::string& strFeature, CEvent& waitEvent);
@@ -61,4 +64,5 @@ namespace GAME
   private:
     IConfigurationWizard* const  m_wizard;
   };
+}
 }

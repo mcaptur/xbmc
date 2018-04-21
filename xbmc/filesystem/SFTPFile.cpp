@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,16 +20,11 @@
 
 #include "threads/SystemClock.h"
 #include "SFTPFile.h"
-#ifdef HAS_FILESYSTEM_SFTP
 #include "threads/SingleLock.h"
 #include "utils/log.h"
 #include "URL.h"
 #include <fcntl.h>
 #include <sstream>
-
-#ifdef TARGET_WINDOWS
-#pragma comment(lib, "ssh.lib")
-#endif
 
 #if defined(TARGET_DARWIN_IOS)
 #include "utils/StringUtils.h"
@@ -115,7 +110,7 @@ CSFTPSession::~CSFTPSession()
   Disconnect();
 }
 
-sftp_file CSFTPSession::CreateFileHande(const std::string &file)
+sftp_file CSFTPSession::CreateFileHandle(const std::string &file)
 {
   if (m_connected)
   {
@@ -335,7 +330,7 @@ bool CSFTPSession::VerifyKnownHost(ssh_session session)
     case SSH_SERVER_FILE_NOT_FOUND:
       CLog::Log(LOGINFO, "SFTPSession: Server file was not found, creating a new one");
     case SSH_SERVER_NOT_KNOWN:
-      CLog::Log(LOGINFO, "SFTPSession: Server unkown, we trust it for now");
+      CLog::Log(LOGINFO, "SFTPSession: Server unknown, we trust it for now");
       if (ssh_write_knownhost(session) < 0)
       {
         CLog::Log(LOGERROR, "CSFTPSession: Failed to save host '%s'", strerror(errno));
@@ -365,7 +360,6 @@ bool CSFTPSession::Connect(const std::string &host, unsigned int port, const std
     return false;
   }
 
-#if LIBSSH_VERSION_INT >= SSH_VERSION_INT(0,4,0)
   if (ssh_options_set(m_session, SSH_OPTIONS_USER, username.c_str()) < 0)
   {
     CLog::Log(LOGERROR, "SFTPSession: Failed to set username '%s' for session", username.c_str());
@@ -394,33 +388,6 @@ bool CSFTPSession::Connect(const std::string &host, unsigned int port, const std
 #endif
   ssh_options_set(m_session, SSH_OPTIONS_LOG_VERBOSITY, 0);
   ssh_options_set(m_session, SSH_OPTIONS_TIMEOUT, &timeout);  
-#else
-  SSH_OPTIONS* options = ssh_options_new();
-
-  if (ssh_options_set_username(options, username.c_str()) < 0)
-  {
-    CLog::Log(LOGERROR, "SFTPSession: Failed to set username '%s' for session", username.c_str());
-    return false;
-  }
-
-  if (ssh_options_set_host(options, host.c_str()) < 0)
-  {
-    CLog::Log(LOGERROR, "SFTPSession: Failed to set host '%s' for session", host.c_str());
-    return false;
-  }
-
-  if (ssh_options_set_port(options, port) < 0)
-  {
-    CLog::Log(LOGERROR, "SFTPSession: Failed to set port '%d' for session", port);
-    return false;
-  }
-  
-  ssh_options_set_timeout(options, timeout, 0);
-
-  ssh_options_set_log_verbosity(options, 0);
-
-  ssh_set_options(m_session, options);
-#endif
 
   if(ssh_connect(m_session))
   {
@@ -442,19 +409,11 @@ bool CSFTPSession::Connect(const std::string &host, unsigned int port, const std
     return false;
   }
 
-#if LIBSSH_VERSION_MINOR >= 6
   int method = ssh_userauth_list(m_session, NULL);
-#else
-  int method = ssh_auth_list(m_session);
-#endif
 
   // Try to authenticate with public key first
   int publicKeyAuth = SSH_AUTH_DENIED;
-#if LIBSSH_VERSION_MINOR >= 6
   if (method & SSH_AUTH_METHOD_PUBLICKEY && (publicKeyAuth = ssh_userauth_publickey_auto(m_session, NULL, NULL)) == SSH_AUTH_ERROR)
-#else
-  if (method & SSH_AUTH_METHOD_PUBLICKEY && (publicKeyAuth = ssh_userauth_autopubkey(m_session, NULL)) == SSH_AUTH_ERROR)
-#endif
   {
     CLog::Log(LOGERROR, "SFTPSession: Failed to authenticate via publickey '%s'", ssh_get_error(m_session));
     return false;
@@ -607,7 +566,7 @@ bool CSFTPFile::Open(const CURL& url)
   if (m_session)
   {
     m_file = url.GetFileName().c_str();
-    m_sftp_handle = m_session->CreateFileHande(m_file);
+    m_sftp_handle = m_session->CreateFileHandle(m_file);
 
     return (m_sftp_handle != NULL);
   }
@@ -733,5 +692,3 @@ int CSFTPFile::IoControl(EIoControl request, void* param)
 
   return -1;
 }
-
-#endif

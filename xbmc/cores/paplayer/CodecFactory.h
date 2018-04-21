@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,8 +27,8 @@ class CFileItem;
 class CodecFactory
 {
 public:
-  CodecFactory() {}
-  virtual ~CodecFactory() {}
+  CodecFactory() = default;
+  virtual ~CodecFactory() = default;
   static ICodec* CreateCodec(const std::string &type);
   static ICodec* CreateCodecDemux(const CFileItem& file, unsigned int filecache);
 };

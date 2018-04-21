@@ -21,6 +21,10 @@
 %module(directors="1") xbmc
 
 %{
+#if defined(TARGET_WINDOWS)
+#  include <windows.h>
+#endif
+
 #include "interfaces/legacy/Player.h"
 #include "interfaces/legacy/RenderCapture.h"
 #include "interfaces/legacy/Keyboard.h"
@@ -30,7 +34,7 @@
 using namespace XBMCAddon;
 using namespace xbmc;
 
-#if defined(__GNUG__) && (__GNUC__>4) || (__GNUC__==4 && __GNUC_MINOR__>=2)
+#if defined(__GNUG__)
 #pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #endif
 %}

@@ -10,7 +10,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -33,13 +33,12 @@
  \brief
  */
 
-#include <stdint.h>
 #include <map>
 #include <string>
 
-class CXBMCTinyXML;
+#include "utils/Color.h"
 
-typedef uint32_t color_t;
+class CXBMCTinyXML;
 
 class CGUIColorManager
 {
@@ -49,16 +48,14 @@ public:
 
   void Load(const std::string &colorFile);
 
-  color_t GetColor(const std::string &color) const;
+  UTILS::Color GetColor(const std::string &color) const;
 
   void Clear();
 
 protected:
   bool LoadXML(CXBMCTinyXML &xmlDoc);
 
-  std::map<std::string, color_t> m_colors;
-  typedef std::map<std::string, color_t>::iterator iColor;
-  typedef std::map<std::string, color_t>::const_iterator icColor;
+  std::map<std::string, UTILS::Color> m_colors;
 };
 
 /*!

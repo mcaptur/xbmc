@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2016 Team Kodi
+ *      Copyright (C) 2016-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -19,11 +19,13 @@
  */
 #pragma once
 
-#include "input/joysticks/IInputReceiver.h"
+#include "input/joysticks/interfaces/IInputReceiver.h"
 #include "input/joysticks/JoystickTypes.h"
 
 #include <map>
 
+namespace KODI
+{
 namespace JOYSTICK
 {
   class IDriverReceiver;
@@ -42,7 +44,7 @@ namespace JOYSTICK
   public:
     CDriverReceiving(IDriverReceiver* receiver, IButtonMap* buttonMap);
 
-    virtual ~CDriverReceiving(void) { }
+    virtual ~CDriverReceiving() = default;
 
     // implementation of IInputReceiver
     virtual bool SetRumbleState(const FeatureName& feature, float magnitude) override;
@@ -51,4 +53,5 @@ namespace JOYSTICK
     IDriverReceiver* const m_receiver;
     IButtonMap*      const m_buttonMap;
   };
+}
 }

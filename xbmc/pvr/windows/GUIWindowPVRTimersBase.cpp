@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,10 +18,13 @@
  *
  */
 
+#include "GUIWindowPVRTimersBase.h"
+
 #include "GUIInfoManager.h"
 #include "ServiceBroker.h"
-#include "dialogs/GUIDialogOK.h"
+#include "guilib/GUIComponent.h"
 #include "input/Key.h"
+#include "messaging/helpers/DialogOKHelper.h"
 #include "settings/Settings.h"
 #include "threads/SingleLock.h"
 #include "utils/URIUtils.h"
@@ -29,22 +32,21 @@
 
 #include "pvr/PVRGUIActions.h"
 #include "pvr/PVRManager.h"
-#include "pvr/timers/PVRTimers.h"
 #include "pvr/addons/PVRClients.h"
-
-#include "GUIWindowPVRTimersBase.h"
+#include "pvr/timers/PVRTimers.h"
 
 using namespace PVR;
+using namespace KODI::MESSAGING;
 
 CGUIWindowPVRTimersBase::CGUIWindowPVRTimersBase(bool bRadio, int id, const std::string &xmlFile) :
   CGUIWindowPVRBase(bRadio, id, xmlFile)
 {
-  g_infoManager.RegisterObserver(this);
+  CServiceBroker::GetGUI()->GetInfoManager().RegisterObserver(this);
 }
 
 CGUIWindowPVRTimersBase::~CGUIWindowPVRTimersBase()
 {
-  g_infoManager.UnregisterObserver(this);
+  CServiceBroker::GetGUI()->GetInfoManager().UnregisterObserver(this);
 }
 
 bool CGUIWindowPVRTimersBase::OnAction(const CAction &action)
@@ -136,7 +138,7 @@ bool CGUIWindowPVRTimersBase::OnMessage(CGUIMessage &message)
               OnPopupMenu(iItem);
               break;
             case ACTION_DELETE_ITEM:
-              CPVRGUIActions::GetInstance().DeleteTimer(m_vecItems->Get(iItem));
+              CServiceBroker::GetPVRManager().GUIActions()->DeleteTimer(m_vecItems->Get(iItem));
               break;
             default:
               bReturn = false;
@@ -177,9 +179,9 @@ bool CGUIWindowPVRTimersBase::OnMessage(CGUIMessage &message)
 
 bool CGUIWindowPVRTimersBase::ActionShowTimer(const CFileItemPtr &item)
 {
-  if (!g_PVRClients->SupportsTimers())
+  if (!CServiceBroker::GetPVRManager().Clients()->SupportsTimers())
   {
-    CGUIDialogOK::ShowAndGetInput(CVariant{19033}, CVariant{19215}); // "Information", "The PVR backend does not support timers."
+    HELPERS::ShowOKDialogText(CVariant{19033}, CVariant{19215}); // "Information", "The PVR backend does not support timers."
     return false;
   }
 
@@ -189,9 +191,9 @@ bool CGUIWindowPVRTimersBase::ActionShowTimer(const CFileItemPtr &item)
      create a new timer and open settings dialog, otherwise
      open settings for selected timer entry */
   if (URIUtils::PathEquals(item->GetPath(), CPVRTimersPath::PATH_ADDTIMER))
-    bReturn = CPVRGUIActions::GetInstance().AddTimer(m_bRadio);
+    bReturn = CServiceBroker::GetPVRManager().GUIActions()->AddTimer(m_bRadio);
   else
-    bReturn = CPVRGUIActions::GetInstance().EditTimer(item);
+    bReturn = CServiceBroker::GetPVRManager().GUIActions()->EditTimer(item);
 
   return bReturn;
 }

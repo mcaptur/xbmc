@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
 #include <string.h>
 #include <stdint.h>
 #include "MediaSource.h" // Definition of VECSOURCES
+#include "utils/Digest.h"
 
 #define ARRAY_SIZE(X)         (sizeof(X)/sizeof((X)[0]))
 
@@ -47,9 +48,8 @@ struct ExternalStreamInfo
 
 class CUtil
 {
+  CUtil() = delete;
 public:
-  CUtil(void);
-  virtual ~CUtil(void);
   static void CleanString(const std::string& strFileName,
                           std::string& strTitle,
                           std::string& strTitleAndYear,
@@ -70,12 +70,14 @@ public:
   static int GetDVDIfoTitle(const std::string& strPathFile);
 
   static bool IsPicture(const std::string& strFile);
+  /// Get resolved filesystem location of splash image
+  static std::string GetSplashPath();
 
   /*! \brief retrieve MD5sum of a file
    \param strPath - path to the file to MD5sum
    \return md5 sum of the file
    */
-  static std::string GetFileMD5(const std::string& strPath);
+  static std::string GetFileDigest(const std::string& strPath, KODI::UTILITY::CDigest::Type type);
   static bool GetDirectoryName(const std::string& strFileName, std::string& strDescription);
   static void GetDVDDriveIcon(const std::string& strPath, std::string& strIcon);
   static void RemoveTempFiles();
@@ -203,6 +205,11 @@ public:
    * \brief Thread-safe random number generation
    */
   static int GetRandomNumber();
+
+  static int64_t ConvertSecsToMilliSecs(double secs) { return static_cast<int64_t>(secs * 1000); }
+  static double ConvertMilliSecsToSecs(int64_t offset) { return offset / 1000.0; }
+  static int64_t ConvertMilliSecsToSecsInt(int64_t offset) { return offset / 1000; }
+  static int64_t ConvertMilliSecsToSecsIntRounded(int64_t offset) { return ConvertMilliSecsToSecsInt(offset + 499); }
 
 #if !defined(TARGET_WINDOWS)
 private:

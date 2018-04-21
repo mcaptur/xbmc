@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@ namespace PVR
     static const std::string PATH_DELETED_TV_RECORDINGS;
     static const std::string PATH_DELETED_RADIO_RECORDINGS;
 
-    CPVRRecordingsPath(const std::string &strPath);
+    explicit CPVRRecordingsPath(const std::string &strPath);
     CPVRRecordingsPath(bool bDeleted, bool bRadio);
     CPVRRecordingsPath(bool bDeleted, bool bRadio,
                        const std::string &strDirectory, const std::string &strTitle,

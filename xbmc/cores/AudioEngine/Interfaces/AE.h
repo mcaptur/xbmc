@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2010-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,8 +23,6 @@
 #include <list>
 #include <vector>
 #include <utility>
-
-#include "system.h"
 
 #include "cores/AudioEngine/Utils/AEAudioFormat.h"
 
@@ -61,7 +59,7 @@ enum AEQuality
 
   /* Optional quality levels */
   AE_QUALITY_REALLYHIGH = 100, /* Uncompromised optional quality level,
-                               usually with unmeasurable and unnoticeable improvement */ 
+                               usually with unmeasurable and unnoticeable improvement */
   AE_QUALITY_GPU        = 101, /* GPU acceleration */
 };
 
@@ -71,22 +69,15 @@ enum AEQuality
 class IAE
 {
 protected:
-  friend class CAEFactory;
 
-  IAE() {}
-  virtual ~IAE() {}
-
-  /**
-   * Returns true when it should be possible to initialize this engine, if it returns false
-   * CAEFactory can possibly fall back to a different one
-   */
-  virtual bool CanInit() { return true; }
+  IAE() = default;
+  virtual ~IAE() = default;
 
   /**
    * Initializes the AudioEngine, called by CFactory when it is time to initialize the audio engine.
    * Do not call this directly, CApplication will call this when it is ready
    */
-  virtual bool Initialize() = 0;
+  virtual void Start() = 0;
 public:
   /**
    * Called when the application needs to terminate the engine
@@ -114,12 +105,6 @@ public:
    * @return True if processing suspended
    */
   virtual bool IsSuspended() {return true;}
-  
-  /**
-   * Callback to alert the AudioEngine of setting changes
-   * @param setting The name of the setting that was changed
-   */
-  virtual void OnSettingsChange(const std::string& setting) {}
 
   /**
    * Returns the current master volume level of the AudioEngine
@@ -144,12 +129,6 @@ public:
    * @return The current mute state
    */
   virtual bool IsMuted() = 0;
-
-  /**
-   * Sets the sound mode
-   * @param mode One of AE_SOUND_OFF, AE_SOUND_IDLE or AE_SOUND_ALWAYS
-   */
-  virtual void SetSoundMode(const int mode) = 0;
 
   /**
    * Creates and returns a new IAEStream in the format specified, this function should never fail
@@ -181,23 +160,11 @@ public:
   virtual void FreeSound(IAESound *sound) = 0;
 
   /**
-   * Callback by CApplication for Garbage Collection. This method is called by CApplication every 500ms and can be used to clean up and free no-longer used resources.
-   */
-  virtual void GarbageCollect() = 0;
-
-  /**
    * Enumerate the supported audio output devices
    * @param devices The device list to append supported devices to
    * @param passthrough True if only passthrough devices are wanted
    */
   virtual void EnumerateOutputDevices(AEDeviceList &devices, bool passthrough) = 0;
-
-  /**
-   * Returns the default audio device
-   * @param passthrough True if the default passthrough device is wanted
-   * @return the default audio device
-   */
-  virtual std::string GetDefaultDevice(bool passthrough) { return "default"; }
 
   /**
    * Returns true if the AudioEngine supports AE_FMT_RAW streams for use with formats such as IEC61937
@@ -252,11 +219,6 @@ public:
   virtual void DeviceChange() {return; }
 
   /**
-   * Indicates if dsp addon system is active.
-   */
-  virtual bool HasDSP() { return false; };
-
-  /**
    * Get the current sink data format
    *
    * @param Current sink data format. For more details see AEAudioFormat.
@@ -264,4 +226,3 @@ public:
    */
   virtual bool GetCurrentSinkFormat(AEAudioFormat &SinkFormat) { return false; }
 };
-

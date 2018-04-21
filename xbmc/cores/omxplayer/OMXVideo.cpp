@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2010-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,24 +18,21 @@
  *
  */
 
-#if defined(TARGET_WINDOWS)
-#include "system.h"
-#endif
-
 #include "OMXVideo.h"
 
 #include "ServiceBroker.h"
 #include "utils/log.h"
-#include "linux/XMemUtils.h"
+#include "platform/linux/XMemUtils.h"
 #include "DVDDemuxers/DVDDemuxUtils.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/MediaSettings.h"
 #include "cores/VideoPlayer/VideoRenderers/RenderManager.h"
-#include "xbmc/guilib/GraphicContext.h"
+#include "xbmc/windowing/GraphicContext.h"
 #include "settings/Settings.h"
 #include "utils/BitstreamConverter.h"
+#include "cores/VideoPlayer/Interface/Addon/TimingConstants.h"
 
-#include "linux/RBP.h"
+#include "platform/linux/RBP.h"
 
 #include <sys/time.h>
 #include <inttypes.h>
@@ -85,6 +82,7 @@ COMXVideo::COMXVideo(CRenderManager& renderManager, CProcessInfo &processInfo) :
   m_settings_changed  = false;
   m_setStartTime      = false;
   m_transform         = OMX_DISPLAY_ROT0;
+  m_isPi1             = g_RBP.RaspberryPiVersion() == 1;
 }
 
 COMXVideo::~COMXVideo()
@@ -114,7 +112,7 @@ bool COMXVideo::SendDecoderConfig()
     memset((unsigned char *)omx_buffer->pBuffer, 0x0, omx_buffer->nAllocLen);
     memcpy((unsigned char *)omx_buffer->pBuffer, m_extradata, omx_buffer->nFilledLen);
     omx_buffer->nFlags = OMX_BUFFERFLAG_CODECCONFIG | OMX_BUFFERFLAG_ENDOFFRAME;
-  
+
     omx_err = m_omx_decoder.EmptyThisBuffer(omx_buffer);
     if (omx_err != OMX_ErrorNone)
     {
@@ -138,7 +136,7 @@ bool COMXVideo::NaluFormatStartCodes(enum AVCodecID codec, uint8_t *in_extradata
         return true;
     default: break;
   }
-  return false;    
+  return false;
 }
 
 bool COMXVideo::PortSettingsChanged(ResolutionUpdateInfo &resinfo)
@@ -233,9 +231,9 @@ bool COMXVideo::PortSettingsChanged(ResolutionUpdateInfo &resinfo)
     }
   }
 
-  EINTERLACEMETHOD interlace_method = CMediaSettings::GetInstance().GetCurrentVideoSettings().m_InterlaceMethod;
+  EINTERLACEMETHOD interlace_method = m_processInfo.GetVideoSettings().m_InterlaceMethod;
   if (interlace_method == VS_INTERLACEMETHOD_AUTO)
-    interlace_method = VS_INTERLACEMETHOD_MMAL_ADVANCED;
+    interlace_method = m_isPi1 ? VS_INTERLACEMETHOD_MMAL_BOB : VS_INTERLACEMETHOD_MMAL_ADVANCED;
 
   if (m_deinterlace && interlace_method != VS_INTERLACEMETHOD_NONE)
   {
@@ -549,7 +547,7 @@ bool COMXVideo::Open(CDVDStreamInfo &hints, OMXClock *clock, bool hdmi_clock_syn
   omx_err = m_omx_decoder.SetParameter(OMX_IndexParamVideoPortFormat, &formatType);
   if(omx_err != OMX_ErrorNone)
     return false;
-  
+
   OMX_PARAM_PORTDEFINITIONTYPE portParam;
   OMX_INIT_STRUCTURE(portParam);
   portParam.nPortIndex = m_omx_decoder.GetInputPort();
@@ -629,7 +627,7 @@ bool COMXVideo::Open(CDVDStreamInfo &hints, OMXClock *clock, bool hdmi_clock_syn
   }
 
 
-  // Alloc buffers for the omx intput port.
+  // Alloc buffers for the omx input port.
   omx_err = m_omx_decoder.AllocInputBuffers();
   if (omx_err != OMX_ErrorNone)
   {
@@ -835,7 +833,7 @@ int COMXVideo::Decode(uint8_t *pData, int iSize, double dts, double pts, bool &s
     return true;
 
   }
-  
+
   return false;
 }
 
@@ -914,20 +912,20 @@ void COMXVideo::SubmitEOS()
 
   OMX_ERRORTYPE omx_err = OMX_ErrorNone;
   OMX_BUFFERHEADERTYPE *omx_buffer = m_omx_decoder.GetInputBuffer(1000);
-  
+
   if(omx_buffer == NULL)
   {
     CLog::Log(LOGERROR, "%s::%s - buffer error 0x%08x", CLASSNAME, __func__, omx_err);
     m_failed_eos = true;
     return;
   }
-  
+
   omx_buffer->nOffset     = 0;
   omx_buffer->nFilledLen  = 0;
   omx_buffer->nTimeStamp  = ToOMXTime(0LL);
 
   omx_buffer->nFlags = OMX_BUFFERFLAG_ENDOFFRAME | OMX_BUFFERFLAG_EOS | OMX_BUFFERFLAG_TIME_UNKNOWN;
-  
+
   omx_err = m_omx_decoder.EmptyThisBuffer(omx_buffer);
   if (omx_err != OMX_ErrorNone)
   {

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,12 +18,14 @@
  *
  */
 
+#include "ServiceBroker.h"
+#include "GUIComponent.h"
 #include "GUISliderControl.h"
 #include "GUIInfoManager.h"
 #include "input/Key.h"
 #include "utils/MathUtils.h"
 #include "utils/StringUtils.h"
-#include "guiinfo/GUIInfoLabels.h"
+#include "guilib/guiinfo/GUIInfoLabels.h"
 #include "GUIWindowManager.h"
 
 static const SliderAction actions[] = {
@@ -61,9 +63,7 @@ CGUISliderControl::CGUISliderControl(int parentID, int controlID, float posX, fl
   m_action = NULL;
 }
 
-CGUISliderControl::~CGUISliderControl(void)
-{
-}
+CGUISliderControl::~CGUISliderControl(void) = default;
 
 void CGUISliderControl::Process(unsigned int currentTime, CDirtyRegionList &dirtyregions)
 {
@@ -76,7 +76,7 @@ void CGUISliderControl::Process(unsigned int currentTime, CDirtyRegionList &dirt
   if (infoCode)
   {
     int val;
-    if (g_infoManager.GetInt(val, infoCode))
+    if (CServiceBroker::GetGUI()->GetInfoManager().GetInt(val, infoCode))
       SetIntValue(val);
   }
 
@@ -99,7 +99,7 @@ void CGUISliderControl::Process(unsigned int currentTime, CDirtyRegionList &dirt
     if (m_orientation == HORIZONTAL)
       fScale = m_height == 0 ? 1.0f : m_height / m_guiBackground.GetTextureHeight();
     else
-      fScale = m_width == 0 ? 1.0f : m_width / nibUpper.GetTextureWidth();;
+      fScale = m_width == 0 ? 1.0f : m_width / nibUpper.GetTextureWidth();
     dirty |= ProcessSelector(nibUpper, currentTime, fScale, RangeSelectorUpper);
   }
 
@@ -308,7 +308,7 @@ void CGUISliderControl::SendClick()
     std::string action = StringUtils::Format(m_action->formatString, percent);
     CGUIMessage message(GUI_MSG_EXECUTE, m_controlID, m_parentID);
     message.SetStringParam(action);
-    g_windowManager.SendMessage(message);    
+    CServiceBroker::GetGUI()->GetWindowManager().SendMessage(message);    
   }
 }
 
@@ -346,6 +346,8 @@ void CGUISliderControl::SetPercentage(float percent, RangeSelector selector /* =
 
   float percentLower = selector == RangeSelectorLower ? percent : m_percentValues[0];
   float percentUpper = selector == RangeSelectorUpper ? percent : m_percentValues[1];
+  float oldValues[2] = { m_percentValues[0],m_percentValues[1] };
+
 
   if (!m_rangeSelection || percentLower <= percentUpper)
   {
@@ -361,6 +363,8 @@ void CGUISliderControl::SetPercentage(float percent, RangeSelector selector /* =
     if (updateCurrent)
         m_currentSelector = (selector == RangeSelectorLower ? RangeSelectorUpper : RangeSelectorLower);
   }
+  if (oldValues[0] != m_percentValues[0] || oldValues[1] != m_percentValues[1])
+    MarkDirtyRegion();
 }
 
 float CGUISliderControl::GetPercentage(RangeSelector selector /* = RangeSelectorLower */) const
@@ -641,7 +645,7 @@ EVENT_RESULT CGUISliderControl::OnMouseEvent(const CPoint &point, const CMouseEv
     SetFromPosition(point);
     return EVENT_RESULT_HANDLED;
   }
-  else if (event.m_id == ACTION_GESTURE_END)
+  else if (event.m_id == ACTION_GESTURE_END || event.m_id == ACTION_GESTURE_ABORT)
   { // release exclusive access
     CGUIMessage msg(GUI_MSG_EXCLUSIVE_MOUSE, 0, GetParentID());
     SendWindowMessage(msg);

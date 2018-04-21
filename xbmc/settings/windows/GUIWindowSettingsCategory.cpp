@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2014 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -40,7 +40,7 @@
 #define SETTINGS_INTERFACE              WINDOW_SETTINGS_INTERFACE - WINDOW_SETTINGS_START
 #define SETTINGS_GAMES                  WINDOW_SETTINGS_MYGAMES - WINDOW_SETTINGS_START
 
-#define CONTRL_BTN_LEVELS               20
+#define CONTROL_BTN_LEVELS               20
 
 typedef struct {
   int id;
@@ -63,8 +63,6 @@ CGUIWindowSettingsCategory::CGUIWindowSettingsCategory()
       m_iSection(0),
       m_returningFromSkinLoad(false)
 {
-  m_settingsManager = m_settings.GetSettingsManager();
-
   // set the correct ID range...
   m_idRange.clear();
   m_idRange.push_back(WINDOW_SETTINGS_SYSTEM);
@@ -76,8 +74,7 @@ CGUIWindowSettingsCategory::CGUIWindowSettingsCategory()
   m_idRange.push_back(WINDOW_SETTINGS_MYGAMES);
 }
 
-CGUIWindowSettingsCategory::~CGUIWindowSettingsCategory()
-{ }
+CGUIWindowSettingsCategory::~CGUIWindowSettingsCategory() = default;
 
 bool CGUIWindowSettingsCategory::OnMessage(CGUIMessage &message)
 {
@@ -113,9 +110,9 @@ bool CGUIWindowSettingsCategory::OnMessage(CGUIMessage &message)
     {
       if (message.GetParam1() == GUI_MSG_WINDOW_RESIZE)
       {
-        if (IsActive() && CDisplaySettings::GetInstance().GetCurrentResolution() != g_graphicsContext.GetVideoResolution())
+        if (IsActive() && CDisplaySettings::GetInstance().GetCurrentResolution() != CServiceBroker::GetWinSystem()->GetGfxContext().GetVideoResolution())
         {
-          CDisplaySettings::GetInstance().SetCurrentResolution(g_graphicsContext.GetVideoResolution(), true);
+          CDisplaySettings::GetInstance().SetCurrentResolution(CServiceBroker::GetWinSystem()->GetGfxContext().GetVideoResolution(), true);
           CreateSettings();
         }
       }
@@ -144,7 +141,7 @@ bool CGUIWindowSettingsCategory::OnAction(const CAction &action)
       if (m_iCategory >= 0 && m_iCategory < (int)m_categories.size())
         oldCategory = m_categories[m_iCategory]->GetId();
 
-      SET_CONTROL_LABEL(CONTRL_BTN_LEVELS, 10036 + (int)CViewStateSettings::GetInstance().GetSettingLevel());
+      SET_CONTROL_LABEL(CONTROL_BTN_LEVELS, 10036 + (int)CViewStateSettings::GetInstance().GetSettingLevel());
       // only re-create the categories, the settings will be created later
       SetupControls(false);
 
@@ -181,7 +178,7 @@ bool CGUIWindowSettingsCategory::OnBack(int actionID)
 
 void CGUIWindowSettingsCategory::OnWindowLoaded()
 {
-  SET_CONTROL_LABEL(CONTRL_BTN_LEVELS, 10036 + (int)CViewStateSettings::GetInstance().GetSettingLevel());
+  SET_CONTROL_LABEL(CONTROL_BTN_LEVELS, 10036 + (int)CViewStateSettings::GetInstance().GetSettingLevel());
   CGUIDialogSettingsManagerBase::OnWindowLoaded();
 }
 
@@ -190,7 +187,7 @@ int CGUIWindowSettingsCategory::GetSettingLevel() const
   return (int)CViewStateSettings::GetInstance().GetSettingLevel();
 }
 
-CSettingSection* CGUIWindowSettingsCategory::GetSection()
+SettingSectionPtr CGUIWindowSettingsCategory::GetSection()
 {
   for (size_t index = 0; index < SettingGroupSize; index++)
   {
@@ -204,6 +201,11 @@ CSettingSection* CGUIWindowSettingsCategory::GetSection()
 void CGUIWindowSettingsCategory::Save()
 {
   m_settings.Save();
+}
+
+CSettingsManager* CGUIWindowSettingsCategory::GetSettingsManager() const
+{
+  return m_settings.GetSettingsManager();
 }
 
 void CGUIWindowSettingsCategory::FocusElement(const std::string& elementId)

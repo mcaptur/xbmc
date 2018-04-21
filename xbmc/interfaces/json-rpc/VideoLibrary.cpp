@@ -535,7 +535,7 @@ JSONRPC_STATUS CVideoLibrary::SetMovieDetails(const std::string &method, ITransp
   std::map<std::string, std::string> artwork;
   videodatabase.GetArtForItem(infos.m_iDbId, infos.m_type, artwork);
 
-  int playcount = infos.m_playCount;
+  int playcount = infos.GetPlayCount();
   CDateTime lastPlayed = infos.m_lastPlayed;
 
   std::set<std::string> removedArtwork;
@@ -548,11 +548,11 @@ JSONRPC_STATUS CVideoLibrary::SetMovieDetails(const std::string &method, ITransp
   if (!videodatabase.RemoveArtForItem(infos.m_iDbId, MediaTypeMovie, removedArtwork))
     return InternalError;
 
-  if (playcount != infos.m_playCount || lastPlayed != infos.m_lastPlayed)
+  if (playcount != infos.GetPlayCount() || lastPlayed != infos.m_lastPlayed)
   {
     // restore original playcount or the new one won't be announced
-    int newPlaycount = infos.m_playCount;
-    infos.m_playCount = playcount;
+    int newPlaycount = infos.GetPlayCount();
+    infos.SetPlayCount(playcount);
     videodatabase.SetPlayCount(CFileItem(infos), newPlaycount, infos.m_lastPlayed);
   }
 
@@ -694,7 +694,7 @@ JSONRPC_STATUS CVideoLibrary::SetEpisodeDetails(const std::string &method, ITran
   std::map<std::string, std::string> artwork;
   videodatabase.GetArtForItem(infos.m_iDbId, infos.m_type, artwork);
 
-  int playcount = infos.m_playCount;
+  int playcount = infos.GetPlayCount();
   CDateTime lastPlayed = infos.m_lastPlayed;
 
   std::set<std::string> removedArtwork;
@@ -707,11 +707,11 @@ JSONRPC_STATUS CVideoLibrary::SetEpisodeDetails(const std::string &method, ITran
   if (!videodatabase.RemoveArtForItem(infos.m_iDbId, MediaTypeEpisode, removedArtwork))
     return InternalError;
 
-  if (playcount != infos.m_playCount || lastPlayed != infos.m_lastPlayed)
+  if (playcount != infos.GetPlayCount() || lastPlayed != infos.m_lastPlayed)
   {
     // restore original playcount or the new one won't be announced
-    int newPlaycount = infos.m_playCount;
-    infos.m_playCount = playcount;
+    int newPlaycount = infos.GetPlayCount();
+    infos.SetPlayCount(playcount);
     videodatabase.SetPlayCount(CFileItem(infos), newPlaycount, infos.m_lastPlayed);
   }
 
@@ -741,7 +741,7 @@ JSONRPC_STATUS CVideoLibrary::SetMusicVideoDetails(const std::string &method, IT
   std::map<std::string, std::string> artwork;
   videodatabase.GetArtForItem(infos.m_iDbId, infos.m_type, artwork);
 
-  int playcount = infos.m_playCount;
+  int playcount = infos.GetPlayCount();
   CDateTime lastPlayed = infos.m_lastPlayed;
 
   std::set<std::string> removedArtwork;
@@ -758,11 +758,11 @@ JSONRPC_STATUS CVideoLibrary::SetMusicVideoDetails(const std::string &method, IT
   if (!videodatabase.RemoveArtForItem(infos.m_iDbId, MediaTypeMusicVideo, removedArtwork))
     return InternalError;
 
-  if (playcount != infos.m_playCount || lastPlayed != infos.m_lastPlayed)
+  if (playcount != infos.GetPlayCount()|| lastPlayed != infos.m_lastPlayed)
   {
     // restore original playcount or the new one won't be announced
-    int newPlaycount = infos.m_playCount;
-    infos.m_playCount = playcount;
+    int newPlaycount = infos.GetPlayCount();
+    infos.SetPlayCount(playcount);
     videodatabase.SetPlayCount(CFileItem(infos), newPlaycount, infos.m_lastPlayed);
   }
 
@@ -891,12 +891,18 @@ JSONRPC_STATUS CVideoLibrary::Export(const std::string &method, ITransportLayer 
 {
   std::string cmd;
   if (parameterObject["options"].isMember("path"))
-    cmd = StringUtils::Format("exportlibrary(video, false, %s)", StringUtils::Paramify(parameterObject["options"]["path"].asString()).c_str());
+    cmd = StringUtils::Format("exportlibrary2(video, singlefile, %s)", StringUtils::Paramify(parameterObject["options"]["path"].asString()).c_str());
   else
-    cmd = StringUtils::Format("exportlibrary(video, true, %s, %s, %s)",
-                              parameterObject["options"]["images"].asBoolean() ? "true" : "false",
-                              parameterObject["options"]["overwrite"].asBoolean() ? "true" : "false",
-                              parameterObject["options"]["actorthumbs"].asBoolean() ? "true" : "false");
+  {
+    cmd = "exportlibrary2(video, separate, dummy";
+    if (parameterObject["options"].isMember("images"))
+      cmd += ", artwork";
+    if (parameterObject["options"].isMember("overwrite"))
+      cmd += ", overwrite";
+    if (parameterObject["options"].isMember("actorthumbs"))
+      cmd += ", actorthumbs";
+    cmd += ")";
+  }
 
   CApplicationMessenger::GetInstance().SendMsg(TMSG_EXECUTE_BUILT_IN, -1, -1, nullptr, cmd);
   return ACK;
@@ -904,7 +910,12 @@ JSONRPC_STATUS CVideoLibrary::Export(const std::string &method, ITransportLayer 
 
 JSONRPC_STATUS CVideoLibrary::Clean(const std::string &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
 {
-  std::string cmd = StringUtils::Format("cleanlibrary(video, %s)", parameterObject["showdialogs"].asBoolean() ? "true" : "false");
+  std::string cmd;
+  if (parameterObject["content"].empty())
+    cmd = StringUtils::Format("cleanlibrary(video, {0})", parameterObject["showdialogs"].asBoolean() ? "true" : "false");
+  else
+    cmd = StringUtils::Format("cleanlibrary({0}, {1})", parameterObject["content"].asString(), parameterObject["showdialogs"].asBoolean() ? "true" : "false");
+
   CApplicationMessenger::GetInstance().SendMsg(TMSG_EXECUTE_BUILT_IN, -1, -1, nullptr, cmd);
   return ACK;
 }
@@ -1079,9 +1090,9 @@ void CVideoLibrary::UpdateVideoTag(const CVariant &parameterObject, CVideoInfoTa
   if (ParameterNotNull(parameterObject, "title"))
     details.SetTitle(parameterObject["title"].asString());
   if (ParameterNotNull(parameterObject, "playcount"))
-    details.m_playCount = (int)parameterObject["playcount"].asInteger();
+    details.SetPlayCount(static_cast<int>(parameterObject["playcount"].asInteger()));
   if (ParameterNotNull(parameterObject, "runtime"))
-    details.m_duration = (int)parameterObject["runtime"].asInteger();
+    details.SetDuration(static_cast<int>(parameterObject["runtime"].asInteger()));
 
   std::vector<std::string> director(details.m_director);
   UpdateVideoTagField(parameterObject, "director", director, updatedDetails);
@@ -1125,7 +1136,12 @@ void CVideoLibrary::UpdateVideoTag(const CVariant &parameterObject, CVideoInfoTa
       {
         const auto& rating = rIt->second;
         if (ParameterNotNull(rating, "votes"))
-          details.SetRating(rating["rating"].asFloat(), rating["votes"].asFloat(), rIt->first, (ParameterNotNull(rating, "default") && rating["default"].asBoolean()));
+        {
+          details.SetRating(rating["rating"].asFloat(),
+                            static_cast<int>(rating["votes"].asInteger()),
+                            rIt->first,
+                            (ParameterNotNull(rating, "default") && rating["default"].asBoolean()));
+        }
         else
           details.SetRating(rating["rating"].asFloat(), rIt->first, (ParameterNotNull(rating, "default") && rating["default"].asBoolean()));
 
@@ -1139,7 +1155,7 @@ void CVideoLibrary::UpdateVideoTag(const CVariant &parameterObject, CVideoInfoTa
     }
   }
   if (ParameterNotNull(parameterObject, "userrating"))
-    details.m_iUserRating = parameterObject["userrating"].asInteger();
+    details.m_iUserRating = static_cast<int>(parameterObject["userrating"].asInteger());
   if (ParameterNotNull(parameterObject, "mpaa"))
     details.SetMPAARating(parameterObject["mpaa"].asString());
   if (ParameterNotNull(parameterObject, "imdbnumber"))

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,6 +19,8 @@
  */
 
 #include "swighelper.h"
+
+#include "guilib/GUIEditControl.h"
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 namespace XBMCAddon
@@ -83,6 +85,40 @@ namespace XBMCAddon
 #else
     long getCurrentWindowDialogId();
 #endif
+
+#ifdef DOXYGEN_SHOULD_USE_THIS
+    ///
+    /// \ingroup python_xbmcgui_window
+    /// @brief \python_func{ getScreenHeight() }
+    ///-------------------------------------------------------------------------
+    /// Returns the height of this screen.
+    ///
+    /// @return                       Screen height
+    ///
+    ///-------------------------------------------------------------------------
+    /// @python_v18 New function added.
+    ///
+    getScreenHeight();
+#else
+    long getScreenHeight();
+#endif
+
+#ifdef DOXYGEN_SHOULD_USE_THIS
+    ///
+    /// \ingroup python_xbmcgui_window
+    /// @brief \python_func{ getScreenWidth() }
+    ///-------------------------------------------------------------------------
+    /// Returns the width of this screen.
+    ///
+    /// @return                       Screen width
+    ///
+    ///-------------------------------------------------------------------------
+    /// @python_v18 New function added.
+    ///
+    getScreenWidth();
+#else
+    long getScreenWidth();
+#endif
     ///@}
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
@@ -93,6 +129,15 @@ namespace XBMCAddon
     SWIG_CONSTANT2(int,ICON_OVERLAY_UNWATCHED, CGUIListItem::ICON_OVERLAY_UNWATCHED);
     SWIG_CONSTANT2(int,ICON_OVERLAY_WATCHED, CGUIListItem::ICON_OVERLAY_WATCHED);
     SWIG_CONSTANT2(int,ICON_OVERLAY_HD, CGUIListItem::ICON_OVERLAY_HD);
+
+    SWIG_CONSTANT2(int,INPUT_TYPE_TEXT, CGUIEditControl::INPUT_TYPE_TEXT);
+    SWIG_CONSTANT2(int,INPUT_TYPE_NUMBER, CGUIEditControl::INPUT_TYPE_NUMBER);
+    SWIG_CONSTANT2(int,INPUT_TYPE_DATE, CGUIEditControl::INPUT_TYPE_DATE);
+    SWIG_CONSTANT2(int,INPUT_TYPE_TIME, CGUIEditControl::INPUT_TYPE_TIME);
+    SWIG_CONSTANT2(int,INPUT_TYPE_IPADDRESS, CGUIEditControl::INPUT_TYPE_IPADDRESS);
+    SWIG_CONSTANT2(int,INPUT_TYPE_PASSWORD, CGUIEditControl::INPUT_TYPE_PASSWORD);
+    SWIG_CONSTANT2(int,INPUT_TYPE_PASSWORD_MD5, CGUIEditControl::INPUT_TYPE_PASSWORD_MD5);
+    SWIG_CONSTANT2(int,INPUT_TYPE_SECONDS, CGUIEditControl::INPUT_TYPE_SECONDS);
 
     SWIG_CONSTANT_FROM_GETTER(const char*,NOTIFICATION_INFO);
     SWIG_CONSTANT_FROM_GETTER(const char*,NOTIFICATION_WARNING);

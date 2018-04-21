@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -41,6 +41,7 @@ namespace XBMCAddon
     class Monitor : public AddonCallback
     {
       String Id;
+      long invokerId;
       CEvent abortEvent;
     public:
       Monitor();
@@ -68,6 +69,7 @@ namespace XBMCAddon
       inline void    OnNotification(const String &sender, const String &method, const String &data) { XBMC_TRACE; invokeCallback(new CallbackFunction<Monitor,const String,const String,const String>(this,&Monitor::onNotification,sender,method,data)); }
 
       inline const String& GetId() { return Id; }
+      inline long GetInvokerId() { return invokerId; }
 
       void OnAbortRequested();
 #endif
@@ -262,7 +264,7 @@ namespace XBMCAddon
 #ifdef DOXYGEN_SHOULD_USE_THIS
       ///
       /// \ingroup python_monitor
-      /// @brief \python_func{ onNotification(sender, method, data }
+      /// @brief \python_func{ onNotification(sender, method, data) }
       ///-----------------------------------------------------------------------
       /// onNotification method.
       ///
@@ -315,7 +317,7 @@ namespace XBMCAddon
 #else
       bool abortRequested();
 #endif
-      virtual ~Monitor();
+      ~Monitor() override;
     };
     /** @} */
   }

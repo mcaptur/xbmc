@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
  */
 
 #include "DVDSubtitlesLibass.h"
-#include "DVDClock.h"
+#include "cores/VideoPlayer/Interface/Addon/TimingConstants.h"
 #include "ServiceBroker.h"
 #include "filesystem/File.h"
 #include "filesystem/SpecialProtocol.h"
@@ -28,7 +28,7 @@
 #include "utils/URIUtils.h"
 #include "utils/StringUtils.h"
 #include "threads/SingleLock.h"
-#include "guilib/GraphicContext.h"
+#include "windowing/GraphicContext.h"
 
 static void libass_log(int level, const char *fmt, va_list args, void *data)
 {
@@ -161,14 +161,14 @@ ASS_Image* CDVDSubtitlesLibass::RenderImage(int frameWidth, int frameHeight, int
     return NULL;
   }
 
-  double storage_aspact = (double)frameWidth / frameHeight;
+  double storage_aspect = (double)frameWidth / frameHeight;
   m_dll.ass_set_frame_size(m_renderer, frameWidth, frameHeight);
   int topmargin = (frameHeight - videoHeight) / 2;
   int leftmargin = (frameWidth - videoWidth) / 2;
   m_dll.ass_set_margins(m_renderer, topmargin, topmargin, leftmargin, leftmargin);
   m_dll.ass_set_use_margins(m_renderer, useMargin);
   m_dll.ass_set_line_position(m_renderer, position);
-  m_dll.ass_set_aspect_ratio(m_renderer, storage_aspact / g_graphicsContext.GetResInfo().fPixelRatio, storage_aspact);
+  m_dll.ass_set_aspect_ratio(m_renderer, storage_aspect / CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo().fPixelRatio, storage_aspect);
   return m_dll.ass_render_frame(m_renderer, m_track, DVD_TIME_TO_MSEC(pts), changes);
 }
 

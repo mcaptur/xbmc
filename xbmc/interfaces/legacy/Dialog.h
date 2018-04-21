@@ -1,6 +1,6 @@
  /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -59,8 +59,8 @@ namespace XBMCAddon
     {
     public:
 
-      inline Dialog() {}
-      virtual ~Dialog();
+      inline Dialog() = default;
+      ~Dialog() override;
 
 #ifdef DOXYGEN_SHOULD_USE_THIS
       ///
@@ -279,20 +279,22 @@ namespace XBMCAddon
 #ifdef DOXYGEN_SHOULD_USE_THIS
       ///
       /// \ingroup python_Dialog
-      /// \python_func{ xbmcgui.Dialog().textviewer(heading, text) }
+      /// \python_func{ xbmcgui.Dialog().textviewer(heading, text, usemono) }
       ///------------------------------------------------------------------------
       ///
-      /// **TextViewe dialog**
+      /// **TextViewer dialog**
       ///
       /// The text viewer dialog can be used to display descriptions, help texts
       /// or other larger texts.
       ///
       /// @param heading       string or unicode - dialog heading.
       /// @param text          string or unicode - text.
+      /// @param usemono       [opt] bool - use monospace font
       ///
       ///
       ///------------------------------------------------------------------------
       /// @python_v16 New function added.
+      /// @python_v18 New optional param added **usemono**.
       ///
       /// **Example:**
       /// ~~~~~~~~~~~~~{.py}
@@ -304,7 +306,7 @@ namespace XBMCAddon
       ///
       textviewer(...);
 #else
-      void textviewer(const String& heading, const String& text);
+      void textviewer(const String& heading, const String& text, bool usemono = false);
 #endif
 
 #ifdef DOXYGEN_SHOULD_USE_THIS
@@ -339,7 +341,7 @@ namespace XBMCAddon
       /// @return If enableMultiple is False (default): returns filename and/or path as a string
       ///        to the location of the highlighted item, if user pressed 'Ok' or a masked item
       ///        was selected. Returns the default value if dialog was canceled.
-      ///        If enableMultiple is True: returns tuple of marked filenames as a strin
+      ///        If enableMultiple is True: returns tuple of marked filenames as a string
       ///        if user pressed 'Ok' or a masked item was selected. Returns empty tuple if dialog was canceled.\n\n
       ///        If type is 0 or 3 the enableMultiple parameter is ignore
       ///
@@ -600,12 +602,12 @@ namespace XBMCAddon
       bool                open;
 
     protected:
-      virtual void deallocating();
+      void deallocating() override;
 
     public:
 
       DialogProgress() : dlg(NULL), open(false) {}
-      virtual ~DialogProgress();
+      ~DialogProgress() override;
 
 #ifdef DOXYGEN_SHOULD_USE_THIS
       ///
@@ -739,12 +741,12 @@ namespace XBMCAddon
       bool open;
 
     protected:
-      virtual void deallocating();
+      void deallocating() override;
 
     public:
 
       DialogBusy() : dlg(NULL), open(false) {}
-      virtual ~DialogBusy();
+      ~DialogBusy() override;
 
 #ifdef DOXYGEN_SHOULD_USE_THIS
       ///
@@ -847,12 +849,12 @@ namespace XBMCAddon
       bool open;
 
     protected:
-      virtual void deallocating();
+      void deallocating() override;
 
     public:
 
       DialogProgressBG() : dlg(NULL), handle(NULL), open(false) {}
-      virtual ~DialogProgressBG();
+      ~DialogProgressBG() override;
 
 #ifdef DOXYGEN_SHOULD_USE_THIS
       ///

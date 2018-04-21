@@ -1,7 +1,7 @@
 set(SOURCES Application.cpp
             ApplicationPlayer.cpp
+            ApplicationStackHelper.cpp
             AppParamParser.cpp
-            Autorun.cpp
             AutoSwitch.cpp
             BackgroundInfoLoader.cpp
             ContextMenuItem.cpp
@@ -24,6 +24,7 @@ set(SOURCES Application.cpp
             PlayListPlayer.cpp
             PartyModeManager.cpp
             SectionLoader.cpp
+            SeekHandler.cpp
             ServiceBroker.cpp
             ServiceManager.cpp
             SystemGlobals.cpp
@@ -31,7 +32,6 @@ set(SOURCES Application.cpp
             TextureCacheJob.cpp
             TextureDatabase.cpp
             ThumbLoader.cpp
-            ThumbnailCache.cpp
             URL.cpp
             Util.cpp
             XBApplicationEx.cpp
@@ -40,8 +40,8 @@ set(SOURCES Application.cpp
 set(HEADERS AppParamParser.h
             Application.h
             ApplicationPlayer.h
+            ApplicationStackHelper.h
             AutoSwitch.h
-            Autorun.h
             BackgroundInfoLoader.h
             CompileInfo.h
             ContextMenuItem.h
@@ -69,6 +69,7 @@ set(HEADERS AppParamParser.h
             PasswordManager.h
             PlayListPlayer.h
             SectionLoader.h
+            SeekHandler.h
             ServiceBroker.h
             ServiceManager.h
             SortFileItem.h
@@ -76,7 +77,6 @@ set(HEADERS AppParamParser.h
             TextureCacheJob.h
             TextureDatabase.h
             ThumbLoader.h
-            ThumbnailCache.h
             URL.h
             Util.h
             XBApplicationEx.h
@@ -84,7 +84,17 @@ set(HEADERS AppParamParser.h
             system.h
             system_gl.h)
 
+if(ENABLE_OPTICAL)
+  list(APPEND SOURCES Autorun.cpp)
+  list(APPEND HEADERS Autorun.h)
+endif()
+
 core_add_library(xbmc)
 if(CAP_FOUND)
   target_compile_definitions(${CORE_LIBRARY} PRIVATE -DHAVE_LIBCAP=1)
 endif()
+
+if(CORE_SYSTEM_NAME STREQUAL windowsstore)
+  set_target_properties(${CORE_LIBRARY} PROPERTIES STATIC_LIBRARY_FLAGS "/ignore:4264")
+endif()
+

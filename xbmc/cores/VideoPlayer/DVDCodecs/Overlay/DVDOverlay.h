@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2006-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ enum DVDOverlayType
 class CDVDOverlay
 {
 public:
-  CDVDOverlay(DVDOverlayType type)
+  explicit CDVDOverlay(DVDOverlayType type)
   {
     m_type = type;
 
@@ -122,7 +122,7 @@ class CDVDOverlayGroup : public CDVDOverlay
 {
 
 public:
-  virtual ~CDVDOverlayGroup()
+  ~CDVDOverlayGroup() override
   {
     for(VecOverlaysIter it = m_overlays.begin(); it != m_overlays.end(); ++it)
       (*it)->Release();

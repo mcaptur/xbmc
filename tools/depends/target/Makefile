@@ -9,11 +9,11 @@ DEPENDS = \
 	libgcrypt bzip2 liblzo2 libzip freetype2 fontconfig \
 	openssl gmp nettle gnutls curl \
 	libjpeg-turbo libpng fribidi libass \
-	libxml2 yajl libmicrohttpd mysql libffi \
-	python27 libshairplay \
-	libplist libcec libbluray tinyxml dummy-libxbmc \
+	libxml2 rapidjson libmicrohttpd mariadb libffi \
+	python27 libshairplay libfmt \
+	libplist libcec libbluray tinyxml \
 	libssh taglib libusb libnfs \
-	pythonmodule-pil pythonmodule-setuptools \
+	pythonmodule-pil pythonmodule-pycryptodome pythonmodule-setuptools \
 	libxslt ffmpeg platform crossguid \
         libdvdread libdvdnav libdvdcss p8-platform
 
@@ -42,7 +42,8 @@ endif
 
 ifeq ($(OS),android)
   EXCLUDED_DEPENDS = libcec libusb
-  DEPENDS += mdnsresponder libuuid
+  DEPENDS += dummy-libxbmc libuuid libandroidjni
+  PYMODULE_DEPS = dummy-libxbmc
   CROSSGUID_DEPS = libuuid
 endif
 
@@ -60,18 +61,24 @@ ifeq ($(NEED_LIBICONV),1)
   ICONV = libiconv
 endif
 
+WAYLANDPP_DEPS=
 ALSA_LIB=
-LINUX_SYSTEM_LIBS=
 ifeq ($(OS),linux)
-  DEPENDS += libuuid
+  DEPENDS += dbus libuuid
   #not for raspberry pi
   ifneq ($(TARGET_PLATFORM),raspberry-pi)
-    DEPENDS += libsdl2 linux-system-libs
-    LINUX_SYSTEM_LIBS = linux-system-libs
+    DEPENDS += linux-system-libs
+    WAYLANDPP_DEPS += linux-system-libs
   endif
   DEPENDS += alsa-lib
   ALSA_LIB = alsa-lib
   CROSSGUID_DEPS = libuuid
+endif
+
+ifeq ($(TARGET_PLATFORM),wayland)
+  DEPENDS += wayland waylandpp wayland-protocols
+else ifeq ($(TARGET_PLATFORM),aml)
+  DEPENDS += libamcodec
 endif
 
 .PHONY: $(DEPENDS)
@@ -82,22 +89,23 @@ gettext: $(ICONV)
 libgcrypt: libgpg-error
 fontconfig: freetype2 expat $(ICONV)
 curl: openssl
-libass: fontconfig libpng freetype2 expat $(ICONV)
+libass: fontconfig fribidi libpng freetype2 expat $(ICONV)
 libmicrohttpd: gnutls libgcrypt libgpg-error
 python27: expat gettext libxml2 sqlite3 openssl libffi
 libcdio: $(ICONV)
-libplist: libxml2 $(ZLIB)
+libcdio-gplv3: $(ICONV)
+libplist: $(ZLIB)
 libbluray: $(ICONV) libxml2
 libssh: libgcrypt openssl $(ZLIB)
-mysql: openssl $(ZLIB)
+mariadb: openssl $(ICONV) $(ZLIB)
 libzip: $(ZLIB)
 libpng: $(ZLIB)
 openssl: $(ZLIB)
 gnutls: nettle $(ZLIB)
 nettle: gmp
-pythonmodule-pil: $(ZLIB) libjpeg-turbo libpng freetype2 python27 pythonmodule-setuptools
-pythonmodule-setuptools: python27
-libsdl2: $(LINUX_SYSTEM_LIBS)
+pythonmodule-pycryptodome: $(PYMODULE_DEPS) python27 pythonmodule-setuptools
+pythonmodule-pil: bzip2 $(PYMODULE_DEPS) $(ZLIB) libjpeg-turbo libpng freetype2 python27 pythonmodule-setuptools
+pythonmodule-setuptools: $(PYMODULE_DEPS) python27
 libxslt: libgcrypt libxml2
 ffmpeg: $(ICONV) $(ZLIB) bzip2 $(FFMPEG_DEPENDS)
 platform: p8-platform
@@ -105,6 +113,9 @@ libcec: p8-platform
 crossguid: $(CROSSGUID_DEPS)
 libdvdnav: libdvdread
 libdvdread: $(DVDREAD_DEPS)
+wayland: expat libffi
+waylandpp: wayland $(WAYLANDPP_DEPS)
+dbus: expat
 
 .installed-$(PLATFORM): $(DEPENDS)
 	touch $@
@@ -131,6 +142,7 @@ distclean::
 
 linux-system-libs-egl:
 	[ -f $(PREFIX)/lib/pkgconfig/egl.pc ] || ln -sf /usr/lib/$(HOST)/pkgconfig/egl.pc $(PREFIX)/lib/pkgconfig/egl.pc
+	[ -f $(PREFIX)/lib/pkgconfig/wayland-egl.pc ] || ln -sf /usr/lib/$(HOST)/pkgconfig/wayland-egl.pc $(PREFIX)/lib/pkgconfig/wayland-egl.pc
 	[ -f $(PREFIX)/lib/pkgconfig/damageproto.pc ] || ln -sf  /usr/share/pkgconfig/damageproto.pc $(PREFIX)/lib/pkgconfig/damageproto.pc
 	[ -f $(PREFIX)/lib/pkgconfig/fixesproto.pc ] || ln -sf  /usr/share/pkgconfig/fixesproto.pc $(PREFIX)/lib/pkgconfig/fixesproto.pc
 	[ -f $(PREFIX)/lib/pkgconfig/x11-xcb.pc ] || ln -sf  /usr/lib/$(HOST)/pkgconfig/x11-xcb.pc $(PREFIX)/lib/pkgconfig/x11-xcb.pc
@@ -168,3 +180,4 @@ linux-system-libs: linux-system-libs-egl
 	[ -f $(PREFIX)/lib/pkgconfig/sm.pc ] || ln -sf /usr/lib/$(HOST)/pkgconfig/sm.pc $(PREFIX)/lib/pkgconfig/sm.pc
 	[ -f $(PREFIX)/lib/pkgconfig/xmu.pc ] || ln -sf /usr/lib/$(HOST)/pkgconfig/xmu.pc $(PREFIX)/lib/pkgconfig/xmu.pc
 	[ -f $(PREFIX)/lib/pkgconfig/libdrm.pc ] || ln -sf /usr/lib/$(HOST)/pkgconfig/libdrm.pc $(PREFIX)/lib/pkgconfig/libdrm.pc
+	[ -f $(PREFIX)/lib/pkgconfig/xkbcommon.pc ] || ln -sf /usr/lib/$(HOST)/pkgconfig/xkbcommon.pc $(PREFIX)/lib/pkgconfig/xkbcommon.pc

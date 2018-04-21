@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
  */
 
 #include "Profile.h"
-#include "GUIInfoManager.h"
+#include "XBDateTime.h"
 #include "utils/XMLUtils.h"
 
 CProfile::CLock::CLock(LockType type, const std::string &password):
@@ -57,13 +57,13 @@ CProfile::CProfile(const std::string &directory, const std::string &name, const 
   m_bAddons = true;
 }
 
-CProfile::~CProfile(void)
-{}
+CProfile::~CProfile(void) = default;
 
 void CProfile::setDate()
 {
-  std::string strDate = g_infoManager.GetDate(true);
-  std::string strTime = g_infoManager.GetTime();
+  const CDateTime now = CDateTime::GetCurrentDateTime();
+  std::string strDate = now.GetAsLocalizedDate(false);
+  std::string strTime = now.GetAsLocalizedTime(TIME_FORMAT_GUESS);
   if (strDate.empty() || strTime.empty())
     setDate("-");
   else

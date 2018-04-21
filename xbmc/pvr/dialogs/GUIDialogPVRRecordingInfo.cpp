@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,10 +18,14 @@
  *
  */
 
-#include "FileItem.h"
-#include "pvr/PVRGUIActions.h"
-
 #include "GUIDialogPVRRecordingInfo.h"
+
+#include "FileItem.h"
+#include "ServiceBroker.h"
+
+#include "pvr/PVRGUIActions.h"
+#include "pvr/PVRManager.h"
+
 
 using namespace PVR;
 
@@ -67,7 +71,7 @@ bool CGUIDialogPVRRecordingInfo::OnClickButtonPlay(CGUIMessage &message)
     Close();
 
     if (m_recordItem)
-      CPVRGUIActions::GetInstance().PlayRecording(m_recordItem, false /* don't play minimized */, true /* check resume */);
+      CServiceBroker::GetPVRManager().GUIActions()->PlayRecording(m_recordItem, true /* check resume */);
 
     bReturn = true;
   }
@@ -93,6 +97,6 @@ CFileItemPtr CGUIDialogPVRRecordingInfo::GetCurrentListItem(int offset)
 
 void CGUIDialogPVRRecordingInfo::ShowFor(const CFileItemPtr& item)
 {
-  CPVRGUIActions::GetInstance().ShowRecordingInfo(item);
+  CServiceBroker::GetPVRManager().GUIActions()->ShowRecordingInfo(item);
 }
 

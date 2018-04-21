@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,19 +27,19 @@
 #include "URL.h"
 #include <map>
 
-static XbmcThreads::ThreadLocal<CFFmpegLog> CFFmpegLogTls;
+static thread_local CFFmpegLog* CFFmpegLogTls;
 
 void CFFmpegLog::SetLogLevel(int level)
 {
   CFFmpegLog::ClearLogLevel();
   CFFmpegLog *log = new CFFmpegLog();
   log->level = level;
-  CFFmpegLogTls.set(log);
+  CFFmpegLogTls = log;
 }
 
 int CFFmpegLog::GetLogLevel()
 {
-  CFFmpegLog* log = CFFmpegLogTls.get();
+  CFFmpegLog* log = CFFmpegLogTls;
   if (!log)
     return -1;
   return log->level;
@@ -47,46 +47,10 @@ int CFFmpegLog::GetLogLevel()
 
 void CFFmpegLog::ClearLogLevel()
 {
-  CFFmpegLog* log = CFFmpegLogTls.get();
-  CFFmpegLogTls.set(nullptr);
+  CFFmpegLog* log = CFFmpegLogTls;
+  CFFmpegLogTls = nullptr;
   if (log)
     delete log;
-}
-
-/* callback for the ffmpeg lock manager */
-int ffmpeg_lockmgr_cb(void **mutex, enum AVLockOp operation)
-{
-  CCriticalSection **lock = (CCriticalSection **)mutex;
-
-  switch (operation)
-  {
-    case AV_LOCK_CREATE:
-    {
-      *lock = NULL;
-      *lock = new CCriticalSection();
-      if (*lock == NULL)
-        return 1;
-      break;
-    }
-    case AV_LOCK_OBTAIN:
-      (*lock)->lock();
-      break;
-
-    case AV_LOCK_RELEASE:
-      (*lock)->unlock();
-      break;
-
-    case AV_LOCK_DESTROY:
-    {
-      delete *lock;
-      *lock = NULL;
-      break;
-    }
-
-    default:
-      return 1;
-  }
-  return 0;
 }
 
 static CCriticalSection m_logSection;

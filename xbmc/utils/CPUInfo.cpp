@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #include <cstdlib>
 
 #include "CPUInfo.h"
+#include "utils/log.h"
 #include "utils/Temperature.h"
 #include <string>
 #include <string.h>
@@ -34,7 +35,7 @@
 #ifdef TARGET_DARWIN_OSX
 #include "platform/darwin/osx/smc.h"
 #endif
-#include "linux/LinuxResourceCounter.h"
+#include "platform/linux/LinuxResourceCounter.h"
 #endif
 
 #if defined(TARGET_FREEBSD)
@@ -43,7 +44,7 @@
 #include <sys/resource.h>
 #endif
 
-#if defined(TARGET_LINUX) && defined(__ARM_NEON__) && !defined(TARGET_ANDROID)
+#if defined(TARGET_LINUX) && defined(HAS_NEON) && !defined(TARGET_ANDROID)
 #include <fcntl.h>
 #include <unistd.h>
 #include <elf.h>
@@ -61,7 +62,10 @@
 #include <intrin.h>
 #include <Pdh.h>
 #include <PdhMsg.h>
+
+#ifdef TARGET_WINDOWS_DESKTOP
 #pragma comment(lib, "Pdh.lib")
+#endif
 
 // Defines to help with calls to CPUID
 #define CPUID_INFOTYPE_STANDARD 0x00000001
@@ -152,8 +156,13 @@ CCPUInfo::CCPUInfo(void)
     core.m_strVendor = cpuVendor;
     m_cores[core.m_id] = core;
   }
+#elif defined(TARGET_WINDOWS_STORE)
+  SYSTEM_INFO siSysInfo;
+  GetNativeSystemInfo(&siSysInfo);
+  m_cpuCount = siSysInfo.dwNumberOfProcessors;
+  m_cpuModel = "Unknown";
 
-#elif defined(TARGET_WINDOWS)
+#elif defined(TARGET_WINDOWS_DESKTOP)
   using KODI::PLATFORM::WINDOWS::FromW;
 
   HKEY hKeyCpuRoot;
@@ -481,7 +490,7 @@ CCPUInfo::~CCPUInfo()
 
   if (m_fCPUFreq != NULL)
     fclose(m_fCPUFreq);
-#elif defined(TARGET_WINDOWS)
+#elif defined(TARGET_WINDOWS_DESKTOP)
   if (m_cpuQueryFreq)
     PdhCloseQuery(m_cpuQueryFreq);
 
@@ -542,7 +551,10 @@ float CCPUInfo::getCPUFrequency()
   if (sysctlbyname("hw.cpufrequency", &hz, &len, NULL, 0) == -1)
     return 0.f;
   return hz / 1000000.0;
-#elif defined TARGET_WINDOWS
+#elif defined(TARGET_WINDOWS_STORE) 
+  CLog::Log(LOGDEBUG, "%s is not implemented", __FUNCTION__);
+  return 0.f;
+#elif defined(TARGET_WINDOWS_DESKTOP) 
   if (m_cpuFreqCounter && PdhCollectQueryData(m_cpuQueryFreq) == ERROR_SUCCESS)
   {
     PDH_RAW_COUNTER cnt;
@@ -570,8 +582,8 @@ float CCPUInfo::getCPUFrequency()
   {
     rewind(m_fCPUFreq);
     fflush(m_fCPUFreq);
-    fscanf(m_fCPUFreq, "%d", &value);
-    value /= 1000.0;
+    if (fscanf(m_fCPUFreq, "%d", &value))
+      value /= 1000.0;
   }
   if (m_fCPUFreq && m_cpuInfoForFreq)
   {
@@ -585,7 +597,8 @@ float CCPUInfo::getCPUFrequency()
         cpus++;
         avg += mhz;
       }
-      fscanf(m_fCPUFreq,"%*s");
+      if (!fscanf(m_fCPUFreq,"%*s"))
+        break;
     }
 
     if (cpus > 0)
@@ -679,8 +692,10 @@ const CoreInfo &CCPUInfo::GetCoreInfo(int nCoreId)
 bool CCPUInfo::readProcStat(unsigned long long& user, unsigned long long& nice,
     unsigned long long& system, unsigned long long& idle, unsigned long long& io)
 {
-
-#ifdef TARGET_WINDOWS
+#if defined(TARGET_WINDOWS)
+  nice = 0;
+  io = 0;
+#if defined (TARGET_WINDOWS_DESKTOP) 
   FILETIME idleTime;
   FILETIME kernelTime;
   FILETIME userTime;
@@ -691,8 +706,6 @@ bool CCPUInfo::readProcStat(unsigned long long& user, unsigned long long& nice,
   // returned "kernelTime" includes "idleTime"
   system = (uint64_t(kernelTime.dwHighDateTime) << 32) + uint64_t(kernelTime.dwLowDateTime) - idle;
   user = (uint64_t(userTime.dwHighDateTime) << 32) + uint64_t(userTime.dwLowDateTime);
-  nice = 0;
-  io = 0;
 
   if (m_cpuFreqCounter && PdhCollectQueryData(m_cpuQueryLoad) == ERROR_SUCCESS)
   {
@@ -725,6 +738,31 @@ bool CCPUInfo::readProcStat(unsigned long long& user, unsigned long long& nice,
   else
     for (std::map<int, CoreInfo>::iterator it = m_cores.begin(); it != m_cores.end(); ++it)
       it->second.m_fPct = double(m_lastUsedPercentage); // use CPU average as fallback
+#endif // TARGET_WINDOWS_DESKTOP
+#if defined(TARGET_WINDOWS_STORE) && defined(NTDDI_WIN10_RS2) && (NTDDI_VERSION >= NTDDI_WIN10_RS2)
+  // introduced in 10.0.15063.0
+  if (Windows::Foundation::Metadata::ApiInformation::IsTypePresent("Windows.System.Diagnostics.SystemDiagnosticInfo"))
+  {
+    try
+    {
+      auto diagnostic = Windows::System::Diagnostics::SystemDiagnosticInfo::GetForCurrentSystem();
+      auto usage = diagnostic->CpuUsage;
+      auto report = usage->GetReport();
+
+      user = report->UserTime.Duration;
+      idle = report->IdleTime.Duration;
+      system = report->KernelTime.Duration - idle;
+      return true;
+    }
+    catch (...)
+    {
+      // requires Win10 CU (10.0.15063) or later
+      return false;
+    }
+  }
+  else
+    return false;
+#endif // TARGET_WINDOWS_STORE
 #elif defined(TARGET_FREEBSD)
   long *cptimes;
   size_t len;
@@ -845,23 +883,29 @@ bool CCPUInfo::readProcStat(unsigned long long& user, unsigned long long& nice,
 std::string CCPUInfo::GetCoresUsageString() const
 {
   std::string strCores;
-  for (std::map<int, CoreInfo>::const_iterator it = m_cores.begin(); it != m_cores.end(); ++it)
+  if (!m_cores.empty())
   {
-    if (!strCores.empty())
-      strCores += ' ';
-    if (it->second.m_fPct < 10.0)
-      strCores += StringUtils::Format("CPU%d: %1.1f%%", it->first, it->second.m_fPct);
-    else
-      strCores += StringUtils::Format("CPU%d: %3.0f%%", it->first, it->second.m_fPct);
+    for (std::map<int, CoreInfo>::const_iterator it = m_cores.begin(); it != m_cores.end(); ++it)
+    {
+      if (!strCores.empty())
+        strCores += ' ';
+      if (it->second.m_fPct < 10.0)
+        strCores += StringUtils::Format("CPU%d: %1.1f%%", it->first, it->second.m_fPct);
+      else
+        strCores += StringUtils::Format("CPU%d: %3.0f%%", it->first, it->second.m_fPct);
+    }
   }
-
+  else 
+  {
+    strCores += StringUtils::Format("%3.0f%%", double(m_lastUsedPercentage));
+  }
   return strCores;
 }
 
 void CCPUInfo::ReadCPUFeatures()
 {
 #ifdef TARGET_WINDOWS
-
+#ifndef _M_ARM
   int CPUInfo[4]; // receives EAX, EBX, ECD and EDX in that order
 
   __cpuid(CPUInfo, 0);
@@ -902,7 +946,7 @@ void CCPUInfo::ReadCPUFeatures()
     if (CPUInfo[CPUINFO_EDX] & CPUID_80000001_EDX_3DNOWEXT)
       m_cpuFeatures |= CPU_FEATURE_3DNOWEXT;
   }
-
+#endif // ! _M_ARM
 #elif defined(TARGET_DARWIN)
   #if defined(__ppc__)
     m_cpuFeatures |= CPU_FEATURE_ALTIVEC;
@@ -957,7 +1001,10 @@ bool CCPUInfo::HasNeon()
 #elif defined(TARGET_DARWIN_IOS)
   has_neon = 1;
 
-#elif defined(TARGET_LINUX) && defined(__ARM_NEON__)
+#elif defined(TARGET_LINUX) && defined(HAS_NEON)
+#if defined(__LP64__)
+  has_neon = 1;
+#else
   if (has_neon == -1)
   {
     has_neon = 0;
@@ -978,6 +1025,7 @@ bool CCPUInfo::HasNeon()
       close(fd);
     }
   }
+#endif
 
 #endif
 

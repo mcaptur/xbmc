@@ -3,7 +3,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,9 +22,6 @@
  */
 
 /* libraries */
-#define DLL_PATH_CPLUFF        "special://xbmcbin/cpluff.dll"
-#define DLL_PATH_LIBEXIF       "special://xbmcbin/libexif.dll"
-#define DLL_PATH_LIBCURL       "special://xbmcbin/libcurl.dll"
 #define DLL_PATH_LIBNFS        "special://xbmcbin/libnfs.dll"
 #define DLL_PATH_LIBPLIST      "special://xbmcbin/libplist.dll"
 #define DLL_PATH_LIBSHAIRPLAY  "special://xbmcbin/shairplay.dll"

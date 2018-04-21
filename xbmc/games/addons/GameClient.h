@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2012-2016 Team Kodi
+ *      Copyright (C) 2012-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -19,17 +19,15 @@
  */
 #pragma once
 
-#include "GameClientProperties.h"
+#include "GameClientSubsystem.h"
 #include "GameClientTiming.h"
-#include "addons/AddonDll.h"
-#include "addons/DllGameClient.h"
+#include "addons/binary-addons/AddonDll.h"
 #include "addons/kodi-addon-dev-kit/include/kodi/kodi_game_types.h"
-#include "games/controllers/ControllerTypes.h"
 #include "games/GameTypes.h"
-#include "peripherals/EventScanRate.h"
 #include "threads/CriticalSection.h"
 
 #include <atomic>
+#include <memory>
 #include <set>
 #include <stdint.h>
 #include <string>
@@ -37,30 +35,39 @@
 
 class CFileItem;
 
+namespace KODI
+{
 namespace GAME
 {
 
+class CGameClientInGameSaves;
 class CGameClientInput;
-class CGameClientKeyboard;
-class CGameClientMouse;
+class CGameClientProperties;
 class IGameAudioCallback;
 class IGameClientPlayback;
+class IGameInputCallback;
 class IGameVideoCallback;
-
-// --- CGameClient -------------------------------------------------------------
 
 /*!
  * \ingroup games
  * \brief Interface between Kodi and Game add-ons.
  */
-class CGameClient : public ADDON::CAddonDll<DllGameClient, GameClient, game_client_properties>
+class CGameClient : public ADDON::CAddonDll
 {
 public:
-  static std::unique_ptr<CGameClient> FromExtension(ADDON::AddonProps props, const cp_extension_t* ext);
+  static std::unique_ptr<CGameClient> FromExtension(ADDON::CAddonInfo addonInfo, const cp_extension_t* ext);
 
-  CGameClient(ADDON::AddonProps props);
+  explicit CGameClient(ADDON::CAddonInfo addonInfo);
 
   virtual ~CGameClient(void);
+
+  // Game subsystems (const)
+  const CGameClientInput &Input() const { return *m_subsystems.Input; }
+  const CGameClientProperties &AddonProperties() const { return *m_subsystems.AddonProperties; }
+
+  // Game subsystems (mutable)
+  CGameClientInput &Input() { return *m_subsystems.Input; }
+  CGameClientProperties &AddonProperties() { return *m_subsystems.AddonProperties; }
 
   // Implementation of IAddon via CAddonDll
   virtual std::string     LibPath() const override;
@@ -77,7 +84,8 @@ public:
   // Start/stop gameplay
   bool Initialize(void);
   void Unload();
-  bool OpenFile(const CFileItem& file, IGameAudioCallback* audio, IGameVideoCallback* video);
+  bool OpenFile(const CFileItem& file, IGameAudioCallback* audio, IGameVideoCallback* video, IGameInputCallback *input);
+  bool OpenStandalone(IGameAudioCallback* audio, IGameVideoCallback* video, IGameInputCallback *input);
   void Reset();
   void CloseFile();
   const std::string& GetGamePath() const { return m_gamePath; }
@@ -101,18 +109,20 @@ public:
   bool Serialize(uint8_t* data, size_t size);
   bool Deserialize(const uint8_t* data, size_t size);
 
-  // Input callbacks
-  bool OpenPort(unsigned int port);
-  void ClosePort(unsigned int port);
-  bool ReceiveInputEvent(const game_input_event& eventStruct);
+  /*!
+    * @brief To get the interface table used between addon and kodi
+    * @todo This function becomes removed after old callback library system
+    * is removed.
+    */
+  AddonInstance_Game* GetInstanceInterface() { return &m_struct; }
 
-  // Input functions
-  bool AcceptsInput(void) const;
+  // Helper functions
+  bool LogError(GAME_ERROR error, const char* strMethod) const;
+  void LogException(const char* strFunctionName) const;
 
 private:
   // Private gameplay functions
-  bool OpenStandalone(IGameAudioCallback* audio, IGameVideoCallback* video);
-  bool InitializeGameplay(const std::string& gamePath, IGameAudioCallback* audio, IGameVideoCallback* video);
+  bool InitializeGameplay(const std::string& gamePath, IGameAudioCallback* audio, IGameVideoCallback* video, IGameInputCallback *input);
   bool LoadGameInfo();
   bool NormalizeAudio(IGameAudioCallback* audioCallback);
   void NotifyError(GAME_ERROR error);
@@ -120,33 +130,36 @@ private:
   void CreatePlayback();
   void ResetPlayback();
 
-  // Private input functions
-  void UpdatePort(unsigned int port, const ControllerPtr& controller);
-  void ClearPorts(void);
-  bool SetRumble(unsigned int port, const std::string& feature, float magnitude);
-  void OpenKeyboard(void);
-  void CloseKeyboard(void);
-  void OpenMouse(void);
-  void CloseMouse(void);
-  ControllerVector GetControllers(void) const;
-
   // Private memory stream functions
   size_t GetSerializeSize();
 
   // Helper functions
   void LogAddonProperties(void) const;
-  bool LogError(GAME_ERROR error, const char* strMethod) const;
-  void LogException(const char* strFunctionName) const;
 
-  // Add-on properties
-  ADDON::AddonVersion   m_apiVersion;
-  CGameClientProperties m_libraryProps;        // Properties to pass to the DLL
+  /*!
+   * @brief Callback functions from addon to kodi
+   */
+  //@{
+  static void cb_close_game(void* kodiInstance);
+  static int cb_open_pixel_stream(void* kodiInstance, GAME_PIXEL_FORMAT format, unsigned int width, unsigned int height, GAME_VIDEO_ROTATION rotation);
+  static int cb_open_video_stream(void* kodiInstance, GAME_VIDEO_CODEC codec);
+  static int cb_open_pcm_stream(void* kodiInstance, GAME_PCM_FORMAT format, const GAME_AUDIO_CHANNEL* channel_map);
+  static int cb_open_audio_stream(void* kodiInstance, GAME_AUDIO_CODEC codec, const GAME_AUDIO_CHANNEL* channel_map);
+  static void cb_add_stream_data(void* kodiInstance, GAME_STREAM_TYPE stream, const uint8_t* data, unsigned int size);
+  static void cb_close_stream(void* kodiInstance, GAME_STREAM_TYPE stream);
+  static void cb_enable_hardware_rendering(void* kodiInstance, const game_hw_info* hw_info);
+  static uintptr_t cb_hw_get_current_framebuffer(void* kodiInstance);
+  static game_proc_address_t cb_hw_get_proc_address(void* kodiInstance, const char* sym);
+  static void cb_render_frame(void* kodiInstance);
+  static bool cb_input_event(void* kodiInstance, const game_input_event* event);
+  //@}
+
+  // Game subsystems
+  GameClientSubsystems m_subsystems;
 
   // Game API xml parameters
   bool                  m_bSupportsVFS;
   bool                  m_bSupportsStandalone;
-  bool                  m_bSupportsKeyboard;
-  bool                  m_bSupportsMouse;
   std::set<std::string> m_extensions;
   bool                  m_bSupportsAllExtensions;
   //GamePlatforms         m_platforms;
@@ -157,17 +170,18 @@ private:
   size_t                m_serializeSize;
   IGameAudioCallback*   m_audio;               // The audio callback passed to OpenFile()
   IGameVideoCallback*   m_video;               // The video callback passed to OpenFile()
+  IGameInputCallback*   m_input = nullptr;     // The input callback passed to OpenFile()
   CGameClientTiming     m_timing;              // Class to scale playback to avoid resampling audio
-  PERIPHERALS::EventRateHandle m_inputRateHandle; // Handle while keeping the input sampling rate at the frame rate
   std::unique_ptr<IGameClientPlayback> m_playback; // Interface to control playback
   GAME_REGION           m_region;              // Region of the loaded game
 
-  // Input
-  std::map<int, std::unique_ptr<CGameClientInput>> m_ports;
-  std::unique_ptr<CGameClientKeyboard> m_keyboard;
-  std::unique_ptr<CGameClientMouse> m_mouse;
+  // In-game saves
+  std::unique_ptr<CGameClientInGameSaves> m_inGameSaves;
 
   CCriticalSection m_critSection;
+
+  AddonInstance_Game m_struct;
 };
 
 } // namespace GAME
+} // namespace KODI

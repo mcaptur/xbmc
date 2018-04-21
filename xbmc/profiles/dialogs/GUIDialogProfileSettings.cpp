@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@
 #include "FileItem.h"
 #include "filesystem/Directory.h"
 #include "filesystem/File.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIKeyboardFactory.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
@@ -41,6 +42,7 @@
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
 #include "utils/Variant.h"
+#include "ServiceBroker.h"
 
 #define SETTING_PROFILE_NAME          "profile.name"
 #define SETTING_PROFILE_IMAGE         "profile.image"
@@ -54,15 +56,16 @@ CGUIDialogProfileSettings::CGUIDialogProfileSettings()
       m_needsSaving(false)
 { }
 
-CGUIDialogProfileSettings::~CGUIDialogProfileSettings()
-{ }
+CGUIDialogProfileSettings::~CGUIDialogProfileSettings() = default;
 
 bool CGUIDialogProfileSettings::ShowForProfile(unsigned int iProfile, bool firstLogin)
 {
-  if (firstLogin && iProfile > CProfilesManager::GetInstance().GetNumberOfProfiles())
+  CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+
+  if (firstLogin && iProfile > profileManager.GetNumberOfProfiles())
     return false;
 
-  CGUIDialogProfileSettings *dialog = (CGUIDialogProfileSettings *)g_windowManager.GetWindow(WINDOW_DIALOG_PROFILE_SETTINGS);
+  CGUIDialogProfileSettings *dialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogProfileSettings>(WINDOW_DIALOG_PROFILE_SETTINGS);
   if (dialog == NULL)
     return false;
 
@@ -70,7 +73,7 @@ bool CGUIDialogProfileSettings::ShowForProfile(unsigned int iProfile, bool first
   dialog->m_isDefault = iProfile == 0;
   dialog->m_showDetails = !firstLogin;
 
-  const CProfile *profile = CProfilesManager::GetInstance().GetProfile(iProfile);
+  const CProfile *profile = profileManager.GetProfile(iProfile);
   if (profile == NULL)
   {
     dialog->m_name.clear();
@@ -78,7 +81,7 @@ bool CGUIDialogProfileSettings::ShowForProfile(unsigned int iProfile, bool first
     dialog->m_sourcesMode = 2;
     dialog->m_locks = CProfile::CLock();
 
-    bool bLock = CProfilesManager::GetInstance().GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser;
+    bool bLock = profileManager.GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && !g_passwordManager.bMasterUser;
     dialog->m_locks.addonManager = bLock;
     dialog->m_locks.settings = (bLock) ? LOCK_LEVEL::ALL : LOCK_LEVEL::NONE;
     dialog->m_locks.files = bLock;
@@ -125,7 +128,7 @@ bool CGUIDialogProfileSettings::ShowForProfile(unsigned int iProfile, bool first
   dialog->Open();
   if (dialog->m_needsSaving)
   {
-    if (iProfile >= CProfilesManager::GetInstance().GetNumberOfProfiles())
+    if (iProfile >= profileManager.GetNumberOfProfiles())
     {
       if (dialog->m_name.empty() || dialog->m_directory.empty())
         return false;
@@ -134,13 +137,13 @@ bool CGUIDialogProfileSettings::ShowForProfile(unsigned int iProfile, bool first
       strLabel.Format(g_localizeStrings.Get(20047),dialog->m_strName);
       if (!CGUIDialogYesNo::ShowAndGetInput(20058, strLabel, dialog->m_strDirectory, ""))
       {
-        CDirectory::Remove(URIUtils::AddFileToFolder(CProfilesManager::GetInstance().GetUserDataFolder(), dialog->m_strDirectory));
+        CDirectory::Remove(URIUtils::AddFileToFolder(profileManager.GetUserDataFolder(), dialog->m_strDirectory));
         return false;
       }*/
 
       // check for old profile settings
-      CProfile profile(dialog->m_directory, dialog->m_name, CProfilesManager::GetInstance().GetNextProfileId());
-      CProfilesManager::GetInstance().AddProfile(profile);
+      CProfile profile(dialog->m_directory, dialog->m_name, profileManager.GetNextProfileId());
+      profileManager.AddProfile(profile);
       bool exists = XFILE::CFile::Exists(URIUtils::AddFileToFolder("special://masterprofile/", dialog->m_directory, "guisettings.xml"));
 
       if (exists && !CGUIDialogYesNo::ShowAndGetInput(CVariant{20058}, CVariant{20104}))
@@ -179,7 +182,7 @@ bool CGUIDialogProfileSettings::ShowForProfile(unsigned int iProfile, bool first
       if (!CGUIDialogYesNo::ShowAndGetInput(20067, 20103))
         return false;*/
 
-    CProfile *profile = CProfilesManager::GetInstance().GetProfile(iProfile);
+    CProfile *profile = profileManager.GetProfile(iProfile);
     assert(profile);
     profile->setName(dialog->m_name);
     profile->setDirectory(dialog->m_directory);
@@ -189,7 +192,7 @@ bool CGUIDialogProfileSettings::ShowForProfile(unsigned int iProfile, bool first
     profile->setDatabases((dialog->m_dbMode & 2) == 2);
     profile->setSources((dialog->m_sourcesMode & 2) == 2);
     profile->SetLocks(dialog->m_locks);
-    CProfilesManager::GetInstance().Save();
+    profileManager.Save();
 
     return true;
   }
@@ -202,7 +205,7 @@ void CGUIDialogProfileSettings::OnWindowLoaded()
   CGUIDialogSettingsManualBase::OnWindowLoaded();
 }
 
-void CGUIDialogProfileSettings::OnSettingChanged(const CSetting *setting)
+void CGUIDialogProfileSettings::OnSettingChanged(std::shared_ptr<const CSetting> setting)
 {
   if (setting == NULL)
     return;
@@ -212,17 +215,17 @@ void CGUIDialogProfileSettings::OnSettingChanged(const CSetting *setting)
   const std::string &settingId = setting->GetId();
   if (settingId == SETTING_PROFILE_NAME)
   {
-    m_name = static_cast<const CSettingString*>(setting)->GetValue();
+    m_name = std::static_pointer_cast<const CSettingString>(setting)->GetValue();
   }
   else if (settingId == SETTING_PROFILE_MEDIA)
-    m_dbMode = static_cast<const CSettingInt*>(setting)->GetValue();
+    m_dbMode = std::static_pointer_cast<const CSettingInt>(setting)->GetValue();
   else if (settingId == SETTING_PROFILE_MEDIA_SOURCES)
-    m_sourcesMode = static_cast<const CSettingInt*>(setting)->GetValue();
+    m_sourcesMode = std::static_pointer_cast<const CSettingInt>(setting)->GetValue();
 
   m_needsSaving = true;
 }
 
-void CGUIDialogProfileSettings::OnSettingAction(const CSetting *setting)
+void CGUIDialogProfileSettings::OnSettingAction(std::shared_ptr<const CSetting> setting)
 {
   if (setting == NULL)
     return;
@@ -271,15 +274,17 @@ void CGUIDialogProfileSettings::OnSettingAction(const CSetting *setting)
   {
     if (m_showDetails)
     {
-      if (CProfilesManager::GetInstance().GetMasterProfile().getLockMode() == LOCK_MODE_EVERYONE && !m_isDefault)
+      const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+
+      if (profileManager.GetMasterProfile().getLockMode() == LOCK_MODE_EVERYONE && !m_isDefault)
       {
         if (CGUIDialogYesNo::ShowAndGetInput(CVariant{20066}, CVariant{20118}))
           g_passwordManager.SetMasterLockMode(false);
-        if (CProfilesManager::GetInstance().GetMasterProfile().getLockMode() == LOCK_MODE_EVERYONE)
+        if (profileManager.GetMasterProfile().getLockMode() == LOCK_MODE_EVERYONE)
           return;
       }
       if (CGUIDialogLockSettings::ShowAndGetLock(m_locks, m_isDefault ? 12360 : 20068,
-              CProfilesManager::GetInstance().GetMasterProfile().getLockMode() == LOCK_MODE_EVERYONE || m_isDefault))
+              profileManager.GetMasterProfile().getLockMode() == LOCK_MODE_EVERYONE || m_isDefault))
         m_needsSaving = true;
     }
     else
@@ -317,48 +322,50 @@ void CGUIDialogProfileSettings::InitializeSettings()
 {
   CGUIDialogSettingsManualBase::InitializeSettings();
 
-  CSettingCategory *category = AddCategory("profilesettings", -1);
+  const std::shared_ptr<CSettingCategory> category = AddCategory("profilesettings", -1);
   if (category == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogProfileSettings: unable to setup settings");
     return;
   }
 
-  CSettingGroup *group = AddGroup(category);
+  const std::shared_ptr<CSettingGroup> group = AddGroup(category);
   if (group == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogProfileSettings: unable to setup settings");
     return;
   }
 
-  AddEdit(group, SETTING_PROFILE_NAME, 20093, 0, m_name);
-  AddButton(group, SETTING_PROFILE_IMAGE, 20065, 0);
+  const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+
+  AddEdit(group, SETTING_PROFILE_NAME, 20093, SettingLevel::Basic, m_name);
+  AddButton(group, SETTING_PROFILE_IMAGE, 20065, SettingLevel::Basic);
 
   if (!m_isDefault && m_showDetails)
-    AddButton(group, SETTING_PROFILE_DIRECTORY, 20070, 0);
+    AddButton(group, SETTING_PROFILE_DIRECTORY, 20070, SettingLevel::Basic);
 
   if (m_showDetails ||
-     (m_locks.mode == LOCK_MODE_EVERYONE && CProfilesManager::GetInstance().GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE))
-    AddButton(group, SETTING_PROFILE_LOCKS, 20066, 0);
+     (m_locks.mode == LOCK_MODE_EVERYONE && profileManager.GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE))
+    AddButton(group, SETTING_PROFILE_LOCKS, 20066, SettingLevel::Basic);
 
   if (!m_isDefault && m_showDetails)
   {
-    CSettingGroup *groupMedia = AddGroup(category);
+    const std::shared_ptr<CSettingGroup> groupMedia = AddGroup(category);
     if (groupMedia == NULL)
     {
       CLog::Log(LOGERROR, "CGUIDialogProfileSettings: unable to setup settings");
       return;
     }
 
-    StaticIntegerSettingOptions entries;
+    TranslatableIntegerSettingOptions entries;
     entries.push_back(std::make_pair(20062, 0));
     entries.push_back(std::make_pair(20063, 1));
     entries.push_back(std::make_pair(20061, 2));
-    if (CProfilesManager::GetInstance().GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE)
+    if (profileManager.GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE)
       entries.push_back(std::make_pair(20107, 3));
 
-    AddSpinner(groupMedia, SETTING_PROFILE_MEDIA, 20060, 0, m_dbMode, entries);
-    AddSpinner(groupMedia, SETTING_PROFILE_MEDIA_SOURCES, 20094, 0, m_sourcesMode, entries);
+    AddSpinner(groupMedia, SETTING_PROFILE_MEDIA, 20060, SettingLevel::Basic, m_dbMode, entries);
+    AddSpinner(groupMedia, SETTING_PROFILE_MEDIA_SOURCES, 20094, SettingLevel::Basic, m_sourcesMode, entries);
   }
 }
 

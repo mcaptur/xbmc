@@ -25,8 +25,6 @@
 #include "utils/log.h"
 #include "utils/URIUtils.h"
 
-CInfoScanner::~CInfoScanner() {}
-
 bool CInfoScanner::HasNoMedia(const std::string &strDirectory) const
 {
   std::string noMediaFile = URIUtils::AddFileToFolder(strDirectory, ".nomedia");
@@ -38,7 +36,7 @@ bool CInfoScanner::IsExcluded(const std::string& strDirectory, const std::vector
   if (CUtil::ExcludeFileOrFolder(strDirectory, regexps))
     return true;
 
-  if (HasNoMedia(strDirectory))
+  if (!URIUtils::IsPlugin(strDirectory) && HasNoMedia(strDirectory))
   {
     CLog::Log(LOGWARNING, "Skipping item '%s' with '.nomedia' file in parent directory, it won't be added to the library.", CURL::GetRedacted(strDirectory).c_str());
     return true;

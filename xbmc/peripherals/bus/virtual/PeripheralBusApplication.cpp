@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2015-2016 Team Kodi
+ *      Copyright (C) 2015-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -26,7 +26,7 @@
 
 using namespace PERIPHERALS;
 
-CPeripheralBusApplication::CPeripheralBusApplication(CPeripherals* manager) :
+CPeripheralBusApplication::CPeripheralBusApplication(CPeripherals& manager) :
     CPeripheralBus("PeripBusApplication", manager, PERIPHERAL_BUS_APPLICATION)
 {
   // Initialize CPeripheralBus
@@ -41,17 +41,36 @@ void CPeripheralBusApplication::Initialise(void)
 
 bool CPeripheralBusApplication::PerformDeviceScan(PeripheralScanResults& results)
 {
-  const unsigned int controllerCount = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_GAMES_KEYBOARD_PLAYERS);
-
-  for (unsigned int i = 1; i <= controllerCount; i++)
   {
     PeripheralScanResult result(Type());
-    result.m_type          = PERIPHERAL_JOYSTICK_EMULATION;
-    result.m_strDeviceName = g_localizeStrings.Get(35165); // "Keyboard player"
-    result.m_strLocation   = MakeLocation(i);
+    result.m_type          = PERIPHERAL_KEYBOARD;
+    result.m_strDeviceName = g_localizeStrings.Get(35150); // "Keyboard"
+    result.m_strLocation   = PeripheralTypeTranslator::TypeToString(PERIPHERAL_KEYBOARD);
     result.m_iVendorId     = 0;
     result.m_iProductId    = 0;
-    result.m_mappedType    = PERIPHERAL_JOYSTICK_EMULATION;
+    result.m_mappedType    = PERIPHERAL_KEYBOARD;
+    result.m_mappedBusType = Type();
+    result.m_iSequence     = 0;
+
+    if (!results.ContainsResult(result))
+      results.m_results.push_back(result);
+  }
+
+  bool bHasMouse = CServiceBroker::GetSettings().GetBool(CSettings::SETTING_INPUT_ENABLEMOUSE);
+
+  //! @todo Fix game clients to handle mouse disconnecting
+  //! For now mouse is always connected
+  bHasMouse = true;
+
+  if (bHasMouse)
+  {
+    PeripheralScanResult result(Type());
+    result.m_type          = PERIPHERAL_MOUSE;
+    result.m_strDeviceName = g_localizeStrings.Get(35171); // "Mouse"
+    result.m_strLocation   = PeripheralTypeTranslator::TypeToString(PERIPHERAL_MOUSE);
+    result.m_iVendorId     = 0;
+    result.m_iProductId    = 0;
+    result.m_mappedType    = PERIPHERAL_MOUSE;
     result.m_mappedBusType = Type();
     result.m_iSequence     = 0;
 
@@ -64,7 +83,7 @@ bool CPeripheralBusApplication::PerformDeviceScan(PeripheralScanResults& results
 
 void CPeripheralBusApplication::GetDirectory(const std::string &strPath, CFileItemList &items) const
 {
-  // Don't list emulated joysticks in the GUI
+  // Don't list virtual devices in the GUI
 }
 
 std::string CPeripheralBusApplication::MakeLocation(unsigned int controllerIndex) const

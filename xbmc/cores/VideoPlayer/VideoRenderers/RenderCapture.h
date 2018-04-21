@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,10 +20,9 @@
 
 #pragma once
 
-#include "system.h" //HAS_DX, HAS_GL, HAS_GLES, opengl headers, direct3d headers
-
 #ifdef HAS_DX
   #include "guilib/D3DResource.h"
+  #include <wrl/client.h>
 #endif
 
 #include "threads/Event.h"
@@ -42,7 +41,7 @@ class CRenderCaptureBase
 {
   public:
     CRenderCaptureBase();
-    ~CRenderCaptureBase();
+    virtual ~CRenderCaptureBase();
 
     /* \brief Called by the rendermanager to set the state, should not be called by anything else */
     void SetState(ECAPTURESTATE state) { m_state = state; }
@@ -112,34 +111,8 @@ class CRenderCaptureBase
     bool m_asyncChecked;
 };
 
-
-#if defined(HAS_IMXVPU)
-#include "../VideoPlayer/DVDCodecs/Video/DVDVideoCodecIMX.h"
-
-class CRenderCaptureIMX : public CRenderCaptureBase
-{
-  public:
-    CRenderCaptureIMX();
-    ~CRenderCaptureIMX();
-
-    int   GetCaptureFormat();
-
-    void  BeginRender();
-    void  EndRender();
-    void  ReadOut();
-
-    void* GetRenderBuffer();
-};
-
-class CRenderCapture : public CRenderCaptureIMX
-{
-  public:
-    CRenderCapture() {};
-};
-
-
-#elif defined(TARGET_RASPBERRY_PI)
-#include "xbmc/linux/RBP.h"
+#if defined(TARGET_RASPBERRY_PI)
+#include "platform/linux/RBP.h"
 
 class CRenderCaptureDispmanX : public CRenderCaptureBase
 {
@@ -193,7 +166,7 @@ class CRenderCaptureGL : public CRenderCaptureBase
 class CRenderCapture : public CRenderCaptureGL
 {
   public:
-    CRenderCapture() {};
+    CRenderCapture() = default;
 };
 
 #elif HAS_DX /*HAS_GL*/
@@ -204,26 +177,25 @@ class CRenderCaptureDX : public CRenderCaptureBase, public ID3DResource
     CRenderCaptureDX();
     ~CRenderCaptureDX();
 
-    int  GetCaptureFormat();
+    int GetCaptureFormat();
 
     void BeginRender();
     void EndRender();
     void ReadOut();
-    
-    virtual void OnDestroyDevice();
-    virtual void OnLostDevice();
-    virtual void OnCreateDevice() {};
+
+    void OnDestroyDevice(bool fatal) override;
+    void OnCreateDevice() override {};
+    CD3DTexture* GetTarget() { return &m_renderTex; }
 
   private:
     void SurfaceToBuffer();
     void CleanupDX();
 
-    ID3D11Texture2D*        m_renderTexture;
-    ID3D11RenderTargetView* m_renderSurface;
-    ID3D11Texture2D*        m_copySurface;
-    ID3D11Query*            m_query;
-    unsigned int            m_surfaceWidth;
-    unsigned int            m_surfaceHeight;
+    unsigned int m_surfaceWidth;
+    unsigned int m_surfaceHeight;
+    Microsoft::WRL::ComPtr<ID3D11Query> m_query;
+    CD3DTexture m_renderTex;
+    CD3DTexture m_copyTex;
 };
 
 class CRenderCapture : public CRenderCaptureDX

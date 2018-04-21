@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@ namespace dbiplus {
 
 class DatabaseSettings; // forward
 class CDbUrl;
+class CProfilesManager;
 struct SortDescription;
 
 class CDatabase
@@ -40,8 +41,8 @@ public:
   {
   public:
     Filter() : fields("*") {};
-    Filter(const char *w) : fields("*"), where(w) {};
-    Filter(const std::string &w) : fields("*"), where(w) {};
+    explicit Filter(const char *w) : fields("*"), where(w) {};
+    explicit Filter(const std::string &w) : fields("*"), where(w) {};
     
     void AppendField(const std::string &strField);
     void AppendJoin(const std::string &strJoin);
@@ -60,7 +61,7 @@ public:
   class ExistsSubQuery
   {
   public:
-    ExistsSubQuery(const std::string &table) : tablename(table) {};
+    explicit ExistsSubQuery(const std::string &table) : tablename(table) {};
     ExistsSubQuery(const std::string &table, const std::string &parameter) : tablename(table), param(parameter) {};
     void AppendJoin(const std::string &strJoin);
     void AppendWhere(const std::string &strWhere, bool combineWithAnd = true);
@@ -73,12 +74,12 @@ public:
   };
 
 
-  CDatabase(void);
+  CDatabase();
   virtual ~CDatabase(void);
   bool IsOpen();
-  void Close();
+  virtual void Close();
   bool Compress(bool bForce=true);
-  void Interupt();
+  void Interrupt();
 
   bool Open(const DatabaseSettings &db);
 
@@ -221,6 +222,10 @@ protected:
   std::unique_ptr<dbiplus::Database> m_pDB;
   std::unique_ptr<dbiplus::Dataset> m_pDS;
   std::unique_ptr<dbiplus::Dataset> m_pDS2;
+
+protected:
+  // Construction parameters
+  const CProfilesManager &m_profileManager;
 
 private:
   void InitSettings(DatabaseSettings &dbSettings);

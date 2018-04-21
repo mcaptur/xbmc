@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2015 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -38,14 +38,14 @@ namespace XBMCAddon
     {
     public:
       WsgiResponseBody();
-      virtual ~WsgiResponseBody();
+      ~WsgiResponseBody() override;
 
 #ifdef DOXYGEN_SHOULD_USE_THIS
       /// \ingroup python_xbmcwsgi_WsgiInputStreamIterator
       /// \python_func{ operator(status, response_headers[, exc_info]) }
       ///------------------------------------------------------------------------
       ///
-      /// Callable implemention to write data to the response.
+      /// Callable implementation to write data to the response.
       ///
       /// @param data            string data to write
       ///

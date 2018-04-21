@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -65,8 +65,8 @@ namespace XBMCAddon
       PLAYLIST::CPlayList *pPlayList;
 
     public:
-      PlayList(int playList);
-      virtual ~PlayList();
+      explicit PlayList(int playList);
+      ~PlayList() override;
 
 #ifdef DOXYGEN_SHOULD_USE_THIS
       ///

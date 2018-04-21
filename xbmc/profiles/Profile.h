@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -56,7 +56,7 @@ public:
   void Save(TiXmlNode *root) const;
 
   const std::string& getDate() const { return m_date;}
-  const int getId() const { return m_id; }
+  int getId() const { return m_id; }
   const std::string& getName() const { return m_name;}
   const std::string& getDirectory() const { return m_directory;}
   const std::string& getThumb() const { return m_thumb;}

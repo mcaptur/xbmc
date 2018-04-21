@@ -46,16 +46,16 @@ TEST_F(TestAddonBuilder, ShouldFailWhenIdIsNotSet)
 
 TEST_F(TestAddonBuilder, ShouldBuildDependencyAddons)
 {
-  ADDONDEPS deps;
-  deps.emplace("a", std::make_pair(AddonVersion("1.0.0"), false));
+  std::vector<DependencyInfo> deps;
+  deps.emplace_back("a", AddonVersion("1.0.0"), false);
   builder.SetDependencies(deps);
   builder.SetType(ADDON_UNKNOWN);
   builder.SetExtPoint(nullptr);
   auto addon = builder.Build();
-  EXPECT_EQ(deps, addon->GetDeps());
+  EXPECT_EQ(deps, addon->GetDependencies());
 }
 
-TEST_F(TestAddonBuilder, ShouldReturnDeivedType)
+TEST_F(TestAddonBuilder, ShouldReturnDerivedType)
 {
   builder.SetType(ADDON_RESOURCE_LANGUAGE);
   auto addon = std::dynamic_pointer_cast<CLanguageResource>(builder.Build());

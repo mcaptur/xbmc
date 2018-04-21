@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -24,26 +24,32 @@
 #include <string>
 #include <vector>
 
+class EmbeddedArt;
+
 namespace MUSIC_INFO
 {
   class CMusicInfoTag;
-  class EmbeddedArt;
 };
 
 class CTagLoaderTagLib : public MUSIC_INFO::IMusicInfoTagLoader
 {
 public:
   CTagLoaderTagLib() = default;
-  virtual ~CTagLoaderTagLib() = default;
-  bool                   Load(const std::string& strFileName, MUSIC_INFO::CMusicInfoTag& tag, MUSIC_INFO::EmbeddedArt *art = nullptr) override;
-  bool                   Load(const std::string& strFileName, MUSIC_INFO::CMusicInfoTag& tag, const std::string& fallbackFileExtension, MUSIC_INFO::EmbeddedArt *art = NULL);
+  ~CTagLoaderTagLib() override = default;
+  bool Load(const std::string& strFileName, MUSIC_INFO::CMusicInfoTag& tag,
+            EmbeddedArt *art = nullptr) override;
+  bool Load(const std::string& strFileName, MUSIC_INFO::CMusicInfoTag& tag,
+            const std::string& fallbackFileExtension, EmbeddedArt *art = nullptr);
 
   static std::vector<std::string> SplitMBID(const std::vector<std::string> &values);
 protected:
   static void SetArtist(MUSIC_INFO::CMusicInfoTag &tag, const std::vector<std::string> &values);
+  static void SetArtistSort(MUSIC_INFO::CMusicInfoTag &tag, const std::vector<std::string> &values);
   static void SetArtistHints(MUSIC_INFO::CMusicInfoTag &tag, const std::vector<std::string> &values);
   static void SetAlbumArtist(MUSIC_INFO::CMusicInfoTag &tag, const std::vector<std::string> &values);
+  static void SetAlbumArtistSort(MUSIC_INFO::CMusicInfoTag &tag, const std::vector<std::string> &values);
   static void SetAlbumArtistHints(MUSIC_INFO::CMusicInfoTag &tag, const std::vector<std::string> &values);
+  static void SetComposerSort(MUSIC_INFO::CMusicInfoTag &tag, const std::vector<std::string> &values);
   static void SetGenre(MUSIC_INFO::CMusicInfoTag &tag, const std::vector<std::string> &values);
   static void SetReleaseType(MUSIC_INFO::CMusicInfoTag &tag, const std::vector<std::string> &values);
   static void AddArtistRole(MUSIC_INFO::CMusicInfoTag &tag, const std::string& strRole, const std::vector<std::string> &values);
@@ -52,6 +58,6 @@ protected:
   static int POPMtoXBMC(int popm);
 
 template<typename T>
-   static bool ParseTag(T *tag, MUSIC_INFO::EmbeddedArt *art, MUSIC_INFO::CMusicInfoTag& infoTag);
+   static bool ParseTag(T *tag, EmbeddedArt *art, MUSIC_INFO::CMusicInfoTag& infoTag);
 };
 

@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,12 +19,12 @@
  *
  */
 
+#include <vector>
+
 #include "threads/CriticalSection.h"
 #include "threads/SingleLock.h"
 
-#include "PVRChannelGroup.h"
-
-#include <vector>
+#include "pvr/channels/PVRChannelGroup.h"
 
 class CFileItem;
 typedef std::shared_ptr<CFileItem> CFileItemPtr;
@@ -41,7 +41,7 @@ namespace PVR
      * @brief Create a new group container.
      * @param bRadio True if this is a container for radio channels, false if it is for tv channels.
      */
-    CPVRChannelGroups(bool bRadio);
+    explicit CPVRChannelGroups(bool bRadio);
     virtual ~CPVRChannelGroups(void);
 
     /*!
@@ -100,7 +100,7 @@ namespace PVR
     /*!
      * @brief Get a group given it's name.
      * @param strName The name.
-     * @return The group or NULL if it wan't found.
+     * @return The group or NULL if it wasn't found.
      */
     CPVRChannelGroupPtr GetByName(const std::string &strName) const;
 
@@ -222,5 +222,6 @@ namespace PVR
     CPVRChannelGroupPtr              m_selectedGroup;  /*!< the group that's currently selected in the UI */
     std::vector<CPVRChannelGroupPtr> m_groups;         /*!< the groups in this container */
     CCriticalSection m_critSection;
+    std::vector<int> m_failedClientsForChannelGroups;
   };
 }

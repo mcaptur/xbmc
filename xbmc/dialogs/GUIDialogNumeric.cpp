@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,16 +22,18 @@
 
 #include <cassert>
 
+#include "ServiceBroker.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUILabelControl.h"
-#include "utils/md5.h"
 #include "guilib/GUIWindowManager.h"
-#include "GUIDialogOK.h"
 #include "input/XBMC_vkeys.h"
+#include "utils/Digest.h"
 #include "utils/StringUtils.h"
 #include "utils/Variant.h"
 #include "input/Key.h"
 #include "guilib/LocalizeStrings.h"
 #include "interfaces/AnnouncementManager.h"
+#include "messaging/helpers/DialogOKHelper.h"
 
 #define CONTROL_HEADING_LABEL  1
 #define CONTROL_INPUT_LABEL    4
@@ -42,6 +44,8 @@
 #define CONTROL_NEXT          22
 #define CONTROL_BACKSPACE     23
 
+using namespace KODI::MESSAGING;
+using KODI::UTILITY::CDigest;
 
 CGUIDialogNumeric::CGUIDialogNumeric(void)
   : CGUIDialog(WINDOW_DIALOG_NUMERIC, "DialogNumeric.xml")
@@ -56,9 +60,7 @@ CGUIDialogNumeric::CGUIDialogNumeric(void)
   m_loadType = KEEP_IN_MEMORY;
 }
 
-CGUIDialogNumeric::~CGUIDialogNumeric(void)
-{
-}
+CGUIDialogNumeric::~CGUIDialogNumeric(void) = default;
 
 void CGUIDialogNumeric::OnInitWindow()
 {
@@ -482,7 +484,7 @@ std::string CGUIDialogNumeric::GetOutputString() const
 
 bool CGUIDialogNumeric::ShowAndGetSeconds(std::string &timeString, const std::string &heading)
 {
-  CGUIDialogNumeric *pDialog = (CGUIDialogNumeric *)g_windowManager.GetWindow(WINDOW_DIALOG_NUMERIC);
+  CGUIDialogNumeric *pDialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogNumeric>(WINDOW_DIALOG_NUMERIC);
   if (!pDialog) return false;
   int seconds = StringUtils::TimeStringToSeconds(timeString);
   SYSTEMTIME time = {0};
@@ -502,7 +504,7 @@ bool CGUIDialogNumeric::ShowAndGetSeconds(std::string &timeString, const std::st
 
 bool CGUIDialogNumeric::ShowAndGetTime(SYSTEMTIME &time, const std::string &heading)
 {
-  CGUIDialogNumeric *pDialog = (CGUIDialogNumeric *)g_windowManager.GetWindow(WINDOW_DIALOG_NUMERIC);
+  CGUIDialogNumeric *pDialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogNumeric>(WINDOW_DIALOG_NUMERIC);
   if (!pDialog) return false;
   pDialog->SetMode(INPUT_TIME, time);
   pDialog->SetHeading(heading);
@@ -515,7 +517,7 @@ bool CGUIDialogNumeric::ShowAndGetTime(SYSTEMTIME &time, const std::string &head
 
 bool CGUIDialogNumeric::ShowAndGetDate(SYSTEMTIME &date, const std::string &heading)
 {
-  CGUIDialogNumeric *pDialog = (CGUIDialogNumeric *)g_windowManager.GetWindow(WINDOW_DIALOG_NUMERIC);
+  CGUIDialogNumeric *pDialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogNumeric>(WINDOW_DIALOG_NUMERIC);
   if (!pDialog) return false;
   pDialog->SetMode(INPUT_DATE, date);
   pDialog->SetHeading(heading);
@@ -528,7 +530,7 @@ bool CGUIDialogNumeric::ShowAndGetDate(SYSTEMTIME &date, const std::string &head
 
 bool CGUIDialogNumeric::ShowAndGetIPAddress(std::string &IPAddress, const std::string &heading)
 {
-  CGUIDialogNumeric *pDialog = (CGUIDialogNumeric *)g_windowManager.GetWindow(WINDOW_DIALOG_NUMERIC);
+  CGUIDialogNumeric *pDialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogNumeric>(WINDOW_DIALOG_NUMERIC);
   if (!pDialog) return false;
   pDialog->SetMode(INPUT_IP_ADDRESS, IPAddress);
   pDialog->SetHeading(heading);
@@ -542,7 +544,7 @@ bool CGUIDialogNumeric::ShowAndGetIPAddress(std::string &IPAddress, const std::s
 bool CGUIDialogNumeric::ShowAndGetNumber(std::string& strInput, const std::string &strHeading, unsigned int iAutoCloseTimeoutMs /* = 0 */)
 {
   // Prompt user for password input
-  CGUIDialogNumeric *pDialog = (CGUIDialogNumeric *)g_windowManager.GetWindow(WINDOW_DIALOG_NUMERIC);
+  CGUIDialogNumeric *pDialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogNumeric>(WINDOW_DIALOG_NUMERIC);
   pDialog->SetHeading( strHeading );
 
   pDialog->SetMode(INPUT_NUMBER, strInput);
@@ -567,7 +569,7 @@ bool CGUIDialogNumeric::ShowAndVerifyNewPassword(std::string& strNewPassword)
   if (!ShowAndVerifyInput(strUserInput, g_localizeStrings.Get(12340), false))
   {
     // Show error to user saying the password entry was blank
-    CGUIDialogOK::ShowAndGetInput(CVariant{12357}, CVariant{12358}); // Password is empty/blank
+    HELPERS::ShowOKDialogText(CVariant{12357}, CVariant{12358}); // Password is empty/blank
     return false;
   }
 
@@ -579,7 +581,7 @@ bool CGUIDialogNumeric::ShowAndVerifyNewPassword(std::string& strNewPassword)
   if (!ShowAndVerifyInput(strUserInput, g_localizeStrings.Get(12341), true))
   {
     // Show error to user saying the password re-entry failed
-    CGUIDialogOK::ShowAndGetInput(CVariant{12357}, CVariant{12344}); // Password do not match
+    HELPERS::ShowOKDialogText(CVariant{12357}, CVariant{12344}); // Password do not match
     return false;
   }
 
@@ -617,7 +619,7 @@ int CGUIDialogNumeric::ShowAndVerifyPassword(std::string& strPassword, const std
 bool CGUIDialogNumeric::ShowAndVerifyInput(std::string& strToVerify, const std::string& dlgHeading, bool bVerifyInput)
 {
   // Prompt user for password input
-  CGUIDialogNumeric *pDialog = (CGUIDialogNumeric *)g_windowManager.GetWindow(WINDOW_DIALOG_NUMERIC);
+  CGUIDialogNumeric *pDialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogNumeric>(WINDOW_DIALOG_NUMERIC);
   pDialog->SetHeading( dlgHeading );
 
   std::string strInput;
@@ -635,12 +637,11 @@ bool CGUIDialogNumeric::ShowAndVerifyInput(std::string& strToVerify, const std::
     return false;
   }
 
-  std::string md5pword2 = XBMC::XBMC_MD5::GetMD5(strInput);
+  std::string md5pword2 = CDigest::Calculate(CDigest::Type::MD5, strInput);
 
   if (!bVerifyInput)
   {
     strToVerify = md5pword2;
-    StringUtils::ToLower(strToVerify);
     return true;
   }
 

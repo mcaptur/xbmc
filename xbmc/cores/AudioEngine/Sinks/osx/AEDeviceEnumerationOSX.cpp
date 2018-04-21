@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2014 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -247,7 +247,7 @@ unsigned int AEDeviceEnumerationOSX::GetNumPlanes() const
   if (m_isPlanar)
     return m_caStreamInfos.size();
   else
-    return 1;//interlaved - one plane
+    return 1;//interleaved - one plane
 }
 
 bool AEDeviceEnumerationOSX::hasSampleRate(const AESampleRateList &list, const unsigned int samplerate) const
@@ -567,7 +567,7 @@ float AEDeviceEnumerationOSX::ScoreFormat(const AudioStreamBasicDescription &for
     {
       if (formatDesc.mBitsPerChannel == CAEUtil::DataFormatToBits(format.m_dataFormat))
         score += 5;
-      else if (formatDesc.mBitsPerChannel == CAEUtil::DataFormatToBits(format.m_dataFormat))
+      else if (formatDesc.mBitsPerChannel > CAEUtil::DataFormatToBits(format.m_dataFormat))
         score += 1;
     }
   }

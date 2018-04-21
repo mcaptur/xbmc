@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,10 +22,10 @@
 #include "settings/Settings.h"
 #include "utils/CharsetConverter.h"
 #include "utils/Utf8Utils.h"
-#include "system.h"
 
 #include "gtest/gtest.h"
 
+#if 0
 static const uint16_t refutf16LE1[] = { 0xff54, 0xff45, 0xff53, 0xff54,
                                         0xff3f, 0xff55, 0xff54, 0xff46,
                                         0xff11, 0xff16, 0xff2c, 0xff25,
@@ -42,12 +42,14 @@ static const uint16_t refutf16LE2[] = { 0xff54, 0xff45, 0xff53, 0xff54,
                                         0xff33, 0xff54, 0xff44, 0xff33,
                                         0xff54, 0xff52, 0xff49, 0xff4e,
                                         0xff47, 0xff11, 0xff16, 0x0 };
+#endif
 
 static const char refutf16LE3[] = "T\377E\377S\377T\377?\377S\377T\377"
                                   "R\377I\377N\377G\377#\377H\377A\377"
                                   "R\377S\377E\377T\377\064\377O\377\065"
                                   "\377T\377F\377\030\377";
 
+#if 0
 static const uint16_t refutf16LE4[] = { 0xff54, 0xff45, 0xff53, 0xff54,
                                         0xff3f, 0xff55, 0xff54, 0xff46,
                                         0xff11, 0xff16, 0xff2c, 0xff25,
@@ -81,6 +83,7 @@ static const uint16_t refucs2[] = { 0xff54, 0xff45, 0xff53, 0xff54,
                                     0xff3f, 0xff55, 0xff43, 0xff53,
                                     0xff12, 0xff54, 0xff4f, 0xff35,
                                     0xff34, 0xff26, 0xff18, 0x0 };
+#endif
 
 class TestCharsetConverter : public testing::Test
 {
@@ -111,7 +114,7 @@ protected:
     g_charsetConverter.clear();
   }
 
-  ~TestCharsetConverter()
+  ~TestCharsetConverter() override
   {
     CServiceBroker::GetSettings().Unload();
   }
@@ -201,7 +204,7 @@ TEST_F(TestCharsetConverter, utf8To_UTF16LE)
 //{
 //  refstra1 = "ｔｅｓｔ＿ｕｔｆ８Ｔｏ：＿ｃｈａｒｓｅｔ＿ＵＴＦ－３２ＬＥ，＿"
 //#ifdef TARGET_DARWIN
-///* OSX has it's own 'special' utf-8 charset which we use (see UTF8_SOURCE in CharsetConverter.cpp)
+///* OSX has its own 'special' utf-8 charset which we use (see UTF8_SOURCE in CharsetConverter.cpp)
 //   which is basically NFD (decomposed) utf-8.  The trouble is, it fails on the COW FACE and MOUSE FACE
 //   characters for some reason (possibly anything over 0x100000, or maybe there's a decomposed form of these
 //   that I couldn't find???)  If UTF8_SOURCE is switched to UTF-8 then this test would pass as-is, but then
@@ -328,7 +331,7 @@ TEST_F(TestCharsetConverter, getCharsetLabels)
   reflabels.push_back("Hebrew (Windows)");
   reflabels.push_back("Arabic (Windows)");
   reflabels.push_back("Baltic (Windows)");
-  reflabels.push_back("Vietnamesse (Windows)");
+  reflabels.push_back("Vietnamese (Windows)");
   reflabels.push_back("Thai (Windows)");
   reflabels.push_back("Chinese Traditional (Big5)");
   reflabels.push_back("Chinese Simplified (GBK)");
@@ -339,10 +342,10 @@ TEST_F(TestCharsetConverter, getCharsetLabels)
   std::vector<std::string> varlabels = g_charsetConverter.getCharsetLabels();
   ASSERT_EQ(reflabels.size(), varlabels.size());
 
-  std::vector<std::string>::iterator it;
-  for (it = varlabels.begin(); it < varlabels.end(); ++it)
+  size_t pos = 0;
+  for (const auto& it : varlabels)
   {
-    EXPECT_STREQ((reflabels.at(it - varlabels.begin())).c_str(), (*it).c_str());
+    EXPECT_STREQ((reflabels.at(pos++)).c_str(), it.c_str());
   }
 }
 

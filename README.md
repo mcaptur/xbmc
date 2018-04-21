@@ -1,7 +1,6 @@
-[![Build Status](https://travis-ci.org/xbmc/xbmc.svg?branch=master)](https://travis-ci.org/xbmc/xbmc)
 [![Documentation](https://codedocs.xyz/xbmc/xbmc.svg)](https://codedocs.xyz/xbmc/xbmc/)
 
-![Kodi logo](https://raw.githubusercontent.com/xbmc/xbmc-forum/master/xbmc/images/logo-sbs-black.png)
+![Kodi logo](media/banner.png)
 # Kodi Home Theater Software
 
 **Welcome to Kodi!**
@@ -12,7 +11,7 @@ Created in 2003 by a group of like minded programmers, Kodi is a non-profit
 project run and developed by volunteers located around the world.
 More than 450 software developers have contributed to Kodi to date, and 100-plus
 translators have worked to expand its reach, making it available in more
-than 65 languages.
+than 70 languages.
 
 While Kodi functions very well as a standard media player application for your
 computer, it has been designed to be the perfect companion for your HTPC.
@@ -36,20 +35,20 @@ computer will become a fully functional multimedia jukebox.
 
 ## Installation
 
-See [docs/README.xxx] (https://github.com/xbmc/xbmc/tree/master/docs) for specific platform build information.
+See [docs/README.xxx](https://github.com/xbmc/xbmc/tree/master/docs) for specific platform build information.
 
 ## Quick Kodi development links
 
-* [Contributing] (https://github.com/xbmc/xbmc/blob/master/CONTRIBUTING.md)
-* [Submitting a patch] (http://kodi.wiki/view/HOW-TO_submit_a_patch)
-* [Code guidelines] (https://codedocs.xyz/xbmc/xbmc/code_guidelines.html)
-* [Kodi development] (http://kodi.wiki/view/Development)
+* [Contributing](https://github.com/xbmc/xbmc/blob/master/CONTRIBUTING.md)
+* [Submitting a patch](http://kodi.wiki/view/HOW-TO_submit_a_patch)
+* [Code guidelines](https://codedocs.xyz/xbmc/xbmc/code_guidelines.html)
+* [Kodi development](http://kodi.wiki/view/Development)
 
 ## Useful links
 
-* [Kodi wiki] (http://kodi.wiki/)
-* [Kodi bug tracker] (http://trac.kodi.tv)
-* [Kodi community forums] (http://forum.kodi.tv/)
-* [Kodi website] (http://kodi.tv)
+* [Kodi wiki](http://kodi.wiki/)
+* [Kodi bug tracker](http://trac.kodi.tv)
+* [Kodi community forums](http://forum.kodi.tv/)
+* [Kodi website](http://kodi.tv)
 
 **Enjoy Kodi and help us improve it today. :)**

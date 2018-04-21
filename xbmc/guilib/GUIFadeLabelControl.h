@@ -10,7 +10,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -42,20 +42,20 @@ class CGUIFadeLabelControl : public CGUIControl
 public:
   CGUIFadeLabelControl(int parentID, int controlID, float posX, float posY, float width, float height, const CLabelInfo& labelInfo, bool scrollOut, unsigned int timeToDelayAtEnd, bool resetOnLabelChange, bool randomized);
   CGUIFadeLabelControl(const CGUIFadeLabelControl &from);
-  virtual ~CGUIFadeLabelControl(void);
-  virtual CGUIFadeLabelControl *Clone() const { return new CGUIFadeLabelControl(*this); };
+  ~CGUIFadeLabelControl(void) override;
+  CGUIFadeLabelControl *Clone() const override { return new CGUIFadeLabelControl(*this); };
 
-  virtual void Process(unsigned int currentTime, CDirtyRegionList &dirtyregions);
-  virtual void Render();
-  virtual bool CanFocus() const;
-  virtual bool OnMessage(CGUIMessage& message);
+  void Process(unsigned int currentTime, CDirtyRegionList &dirtyregions) override;
+  void Render() override;
+  bool CanFocus() const override;
+  bool OnMessage(CGUIMessage& message) override;
 
-  void SetInfo(const std::vector<CGUIInfoLabel> &vecInfo);
+  void SetInfo(const std::vector<KODI::GUILIB::GUIINFO::CGUIInfoLabel> &vecInfo);
   void SetScrolling(bool scroll) { m_scroll = scroll; }
 
 protected:
-  virtual bool UpdateColors();
-  virtual std::string GetDescription() const;
+  bool UpdateColors() override;
+  std::string GetDescription() const override;
   void AddLabel(const std::string &label);
 
   /*! \brief retrieve the current label for display
@@ -68,7 +68,7 @@ protected:
    */
   std::string GetLabel();
 
-  std::vector< CGUIInfoLabel > m_infoLabels;
+  std::vector<KODI::GUILIB::GUIINFO::CGUIInfoLabel> m_infoLabels;
   unsigned int m_currentLabel;
   unsigned int m_lastLabel;
 

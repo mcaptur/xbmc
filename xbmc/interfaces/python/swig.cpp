@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ namespace PythonBindings
   {
     PyObject* obj;
   public:
-    inline PyObjectDecrementor(PyObject* pyobj) : obj(pyobj) {}
+    inline explicit PyObjectDecrementor(PyObject* pyobj) : obj(pyobj) {}
     inline ~PyObjectDecrementor() { Py_XDECREF(obj); }
 
     inline PyObject* get() { return obj; }
@@ -176,6 +176,14 @@ namespace PythonBindings
     if (exc_type == NULL && exc_value == NULL && exc_traceback == NULL)
       return false;
 
+    // See https://docs.python.org/3/c-api/exceptions.html#c.PyErr_NormalizeException
+    PyErr_NormalizeException(&exc_type, &exc_value, &exc_traceback);
+#if PY_MAJOR_VERSION > 2
+    if (exc_traceback != NULL) {
+      PyException_SetTraceback(exc_value, exc_traceback);
+    }
+#endif
+
     exceptionType.clear();
     exceptionValue.clear();
     exceptionTraceback.clear();
@@ -269,7 +277,7 @@ namespace PythonBindings
         throw XBMCAddon::WrongTypeException("Incorrect type passed to \"%s\", was expecting a \"%s\" but received a \"%s\"",
                                  methodNameForErrorString,expectedType,typeInfo->swigType);
     }
-    return ((PyHolder*)pythonObj)->pSelf;
+    return const_cast<XBMCAddon::AddonClass*>(reinterpret_cast<const PyHolder*>(pythonObj)->pSelf);
   }
 
   /**
@@ -363,7 +371,7 @@ namespace PythonBindings
     const TypeInfo* typeInfo = getTypeInfoForInstance(api);
     PyTypeObject* typeObj = pytype == NULL ? (PyTypeObject*)(&(typeInfo->pythonType)) : pytype;
 
-    PyHolder* self = (PyHolder*)typeObj->tp_alloc(typeObj,0);
+    PyHolder* self = reinterpret_cast<PyHolder*>(typeObj->tp_alloc(typeObj,0));
     if (!self) return NULL;
     self->magicNumber = XBMC_PYTHON_TYPE_MAGIC_NUMBER;
     self->typeInfo = typeInfo;

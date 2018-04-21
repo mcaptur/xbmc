@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,7 +19,8 @@
  */
 
 #include "DVDClock.h"
-#include "video/VideoReferenceClock.h"
+#include "cores/VideoPlayer/Interface/Addon/TimingConstants.h"
+#include "VideoReferenceClock.h"
 #include <math.h>
 #include "utils/MathUtils.h"
 #include "threads/SingleLock.h"
@@ -35,6 +36,7 @@ CDVDClock::CDVDClock()
   m_pauseClock = 0;
   m_bReset = true;
   m_paused = false;
+  m_speedAfterPause = DVD_PLAYSPEED_PAUSE;
   m_iDisc = 0;
   m_maxspeedadjust = 0.0;
   m_systemAdjust = 0;
@@ -50,9 +52,7 @@ CDVDClock::CDVDClock()
   m_systemUsed = m_systemFrequency;
 }
 
-CDVDClock::~CDVDClock()
-{
-}
+CDVDClock::~CDVDClock() = default;
 
 // Returns the current absolute clock in units of DVD_TIME_BASE (usually microseconds).
 double CDVDClock::GetAbsoluteClock(bool interpolated /*= true*/)
@@ -122,9 +122,19 @@ void CDVDClock::Pause(bool pause)
   }
 }
 
+void CDVDClock::Advance(double time)
+{
+  CSingleLock lock(m_critSection);
+
+  if (m_pauseClock)
+  {
+    m_pauseClock += time / DVD_TIME_BASE * m_systemFrequency;
+  }
+}
+
 void CDVDClock::SetSpeed(int iSpeed)
 {
-  // this will sometimes be a little bit of due to rounding errors, ie clock might jump abit when changing speed
+  // this will sometimes be a little bit of due to rounding errors, ie clock might jump a bit when changing speed
   CSingleLock lock(m_critSection);
 
   if (m_paused)

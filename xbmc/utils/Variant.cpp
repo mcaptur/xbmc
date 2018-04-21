@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -135,6 +135,8 @@ CVariant::CVariant()
 }
 
 CVariant CVariant::ConstNullVariant = CVariant::VariantTypeConstNull;
+CVariant::VariantArray CVariant::EMPTY_ARRAY;
+CVariant::VariantMap CVariant::EMPTY_MAP;
 
 CVariant::CVariant(VariantType type)
 {
@@ -167,7 +169,9 @@ CVariant::CVariant(VariantType type)
       m_data.map = new VariantMap();
       break;
     default:
+#ifndef TARGET_WINDOWS_STORE // this corrupts the heap in Win10 UWP version
       memset(&m_data, 0, sizeof(m_data));
+#endif
       break;
   }
 }
@@ -336,6 +340,11 @@ void CVariant::cleanup()
 
 bool CVariant::isInteger() const
 {
+  return isSignedInteger() || isUnsignedInteger();
+}
+
+bool CVariant::isSignedInteger() const
+{
   return m_type == VariantTypeInteger;
 }
 
@@ -405,6 +414,11 @@ int64_t CVariant::asInteger(int64_t fallback) const
   return fallback;
 }
 
+int32_t CVariant::asInteger32(int32_t fallback) const
+{
+  return static_cast<int32_t>(asInteger(fallback));
+}
+
 uint64_t CVariant::asUnsignedInteger(uint64_t fallback) const
 {
   switch (m_type)
@@ -424,6 +438,11 @@ uint64_t CVariant::asUnsignedInteger(uint64_t fallback) const
   }
   
   return fallback;
+}
+
+uint32_t CVariant::asUnsignedInteger32(uint32_t fallback) const
+{
+  return static_cast<uint32_t>(asUnsignedInteger(fallback));
 }
 
 double CVariant::asDouble(double fallback) const
@@ -749,7 +768,7 @@ CVariant::iterator_array CVariant::begin_array()
   if (m_type == VariantTypeArray)
     return m_data.array->begin();
   else
-    return iterator_array();
+    return EMPTY_ARRAY.begin();
 }
 
 CVariant::const_iterator_array CVariant::begin_array() const
@@ -757,7 +776,7 @@ CVariant::const_iterator_array CVariant::begin_array() const
   if (m_type == VariantTypeArray)
     return m_data.array->begin();
   else
-    return const_iterator_array();
+    return EMPTY_ARRAY.begin();
 }
 
 CVariant::iterator_array CVariant::end_array()
@@ -765,7 +784,7 @@ CVariant::iterator_array CVariant::end_array()
   if (m_type == VariantTypeArray)
     return m_data.array->end();
   else
-    return iterator_array();
+    return EMPTY_ARRAY.end();
 }
 
 CVariant::const_iterator_array CVariant::end_array() const
@@ -773,7 +792,7 @@ CVariant::const_iterator_array CVariant::end_array() const
   if (m_type == VariantTypeArray)
     return m_data.array->end();
   else
-    return const_iterator_array();
+    return EMPTY_ARRAY.end();
 }
 
 CVariant::iterator_map CVariant::begin_map()
@@ -781,7 +800,7 @@ CVariant::iterator_map CVariant::begin_map()
   if (m_type == VariantTypeObject)
     return m_data.map->begin();
   else
-    return iterator_map();
+    return EMPTY_MAP.begin();
 }
 
 CVariant::const_iterator_map CVariant::begin_map() const
@@ -789,7 +808,7 @@ CVariant::const_iterator_map CVariant::begin_map() const
   if (m_type == VariantTypeObject)
     return m_data.map->begin();
   else
-    return const_iterator_map();
+    return EMPTY_MAP.begin();
 }
 
 CVariant::iterator_map CVariant::end_map()
@@ -797,7 +816,7 @@ CVariant::iterator_map CVariant::end_map()
   if (m_type == VariantTypeObject)
     return m_data.map->end();
   else
-    return iterator_map();
+    return EMPTY_MAP.end();
 }
 
 CVariant::const_iterator_map CVariant::end_map() const
@@ -805,7 +824,7 @@ CVariant::const_iterator_map CVariant::end_map() const
   if (m_type == VariantTypeObject)
     return m_data.map->end();
   else
-    return const_iterator_map();
+    return EMPTY_MAP.end();
 }
 
 unsigned int CVariant::size() const

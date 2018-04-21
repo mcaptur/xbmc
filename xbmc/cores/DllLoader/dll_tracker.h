@@ -23,7 +23,9 @@
 #include "threads/CriticalSection.h"
 #include "PlatformDefs.h"
 #ifdef TARGET_WINDOWS
-#include "system.h" // for SOCKET
+#if defined(TARGET_WINDOWS_STORE)
+#include <WinSock2.h>
+#endif
 #endif
 
 #include <list>
@@ -115,7 +117,7 @@ void tracker_dll_free(DllLoader* pDll);
 // sets the dll base address and size
 void tracker_dll_set_addr(DllLoader* pDll, uintptr_t min, uintptr_t max);
 
-// returns the name from the dll that contains this addres or "" if not found
+// returns the name from the dll that contains this address or "" if not found
 const char* tracker_getdllname(uintptr_t caller);
 
 // returns a function pointer if there is one available for it, or NULL if not ofund

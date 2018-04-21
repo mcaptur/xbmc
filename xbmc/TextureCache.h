@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -49,7 +49,7 @@ public:
    */
   static CTextureCache &GetInstance();
 
-  /*! \brief Initalize the texture cache
+  /*! \brief Initialize the texture cache
    */
   void Initialize();
 
@@ -156,11 +156,11 @@ public:
   bool Export(const std::string &image, const std::string &destination, bool overwrite);
   bool Export(const std::string &image, const std::string &destination); //! @todo BACKWARD COMPATIBILITY FOR MUSIC THUMBS
 private:
-  // private construction, and no assignements; use the provided singleton methods
+  // private construction, and no assignments; use the provided singleton methods
   CTextureCache();
-  CTextureCache(const CTextureCache&);
-  CTextureCache const& operator=(CTextureCache const&);
-  virtual ~CTextureCache();
+  CTextureCache(const CTextureCache&) = delete;
+  CTextureCache const& operator=(CTextureCache const&) = delete;
+  ~CTextureCache() override;
 
   /*! \brief Check if the given image is a cached image
    \param image url of the image
@@ -208,8 +208,8 @@ private:
    */
   bool SetCachedTextureValid(const std::string &url, bool updateable);
 
-  virtual void OnJobComplete(unsigned int jobID, bool success, CJob *job);
-  virtual void OnJobProgress(unsigned int jobID, unsigned int progress, unsigned int total, const CJob *job);
+  void OnJobComplete(unsigned int jobID, bool success, CJob *job) override;
+  void OnJobProgress(unsigned int jobID, unsigned int progress, unsigned int total, const CJob *job) override;
 
   /*! \brief Called when a caching job has completed.
    Removes the job from our processing list, updates the database

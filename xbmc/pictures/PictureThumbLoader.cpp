@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -26,8 +26,10 @@
 #include "TextureCache.h"
 #include "filesystem/Directory.h"
 #include "filesystem/MultiPathDirectory.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "GUIUserMessages.h"
+#include "utils/FileExtensionProvider.h"
 #include "utils/URIUtils.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
@@ -123,11 +125,11 @@ void CPictureThumbLoader::OnJobComplete(unsigned int jobID, bool success, CJob* 
 {
   if (success)
   {
-    CThumbExtractor* loader = (CThumbExtractor*)job;
+    CThumbExtractor* loader = static_cast<CThumbExtractor*>(job);
     loader->m_item.SetPath(loader->m_listpath);
     CFileItemPtr pItem(new CFileItem(loader->m_item));
     CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE_ITEM, 0, pItem);
-    g_windowManager.SendThreadMessage(msg);
+    CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
   }
   CJobQueue::OnJobComplete(jobID, success, job);
 }
@@ -183,7 +185,7 @@ void CPictureThumbLoader::ProcessFoldersAndArchives(CFileItem *pItem)
 
       CFileItemList items;
 
-      CDirectory::GetDirectory(pathToUrl, items, g_advancedSettings.m_pictureExtensions, DIR_FLAG_NO_FILE_DIRS);
+      CDirectory::GetDirectory(pathToUrl, items, CServiceBroker::GetFileExtensionProvider().GetPictureExtensions(), DIR_FLAG_NO_FILE_DIRS);
       
       // create the folder thumb by choosing 4 random thumbs within the folder and putting
       // them into one thumb.
@@ -202,7 +204,7 @@ void CPictureThumbLoader::ProcessFoldersAndArchives(CFileItem *pItem)
       {
         if (pItem->IsCBZ() || pItem->IsCBR())
         {
-          CDirectory::GetDirectory(pathToUrl, items, g_advancedSettings.m_pictureExtensions, DIR_FLAG_NO_FILE_DIRS);
+          CDirectory::GetDirectory(pathToUrl, items, CServiceBroker::GetFileExtensionProvider().GetPictureExtensions(), DIR_FLAG_NO_FILE_DIRS);
           for (int i=0;i<items.Size();++i)
           {
             CFileItemPtr item = items[i];

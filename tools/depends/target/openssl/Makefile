@@ -3,14 +3,14 @@ DEPS= ../../Makefile.include Makefile
 
 # lib name, version
 LIBNAME=openssl
-VERSION=1.0.2j
+VERSION=1.0.2l
 SOURCE=$(LIBNAME)-$(VERSION)
 ARCHIVE=$(SOURCE).tar.gz
 
 # configuration settings
 CONFIGURE=MACHINE=$(PLATFORM) ./config shared zlib --openssldir=$(PREFIX) --with-zlib-include=$(PREFIX)/include --with-zlib-lib=$(PREFIX)/lib
 ifeq ($(OS), android)
-  CONFIGURE=./Configure shared zlib --openssldir=$(PREFIX) --with-zlib-include=$(PREFIX)/include --with-zlib-lib=$(PREFIX)/lib linux-generic32
+  CONFIGURE=./Configure shared zlib --openssldir=$(PREFIX) --with-zlib-include=$(PREFIX)/include --with-zlib-lib=$(PREFIX)/lib linux-generic32 -D__ANDROID_API__=$(NDK_LEVEL)
 endif
 ifeq ($(OS), ios)
   CONFIGURE=./Configure iphoneos-cross zlib no-asm no-krb5 --openssldir=$(PREFIX)
@@ -23,7 +23,6 @@ ifeq ($(OS), osx)
   endif
 endif
 LIBDYLIB=$(PLATFORM)/libssl.a
-CLEAN_FILES=$(ARCHIVE) $(PLATFORM)
 
 all: .installed-$(PLATFORM)
 
@@ -33,7 +32,7 @@ $(TARBALLS_LOCATION)/$(ARCHIVE):
 $(PLATFORM): $(TARBALLS_LOCATION)/$(ARCHIVE) $(DEPS)
 	rm -rf $(PLATFORM); mkdir -p $(PLATFORM)
 	cd $(PLATFORM); $(ARCHIVE_TOOL) $(ARCHIVE_TOOL_FLAGS) $(TARBALLS_LOCATION)/$(ARCHIVE)
-	cd $(PLATFORM); AR="$(AR)" CFLAGS="$(CFLAGS)" CC=$(CC) RANLIB=$(RANLIB) $(CONFIGURE)
+	cd $(PLATFORM); AR="$(AR)" CFLAGS="$(CFLAGS)" CC="$(CC)" RANLIB=$(RANLIB) $(CONFIGURE)
 	if test "$(OS)" = "osx"; then \
 		sed -ie "s|CC= /usr/bin/gcc-4.2|CC= $(CC)|" "$(PLATFORM)/Makefile"; \
 		sed -ie "s|CFLAG= |CFLAG=$(CFLAGS) |" "$(PLATFORM)/Makefile"; \

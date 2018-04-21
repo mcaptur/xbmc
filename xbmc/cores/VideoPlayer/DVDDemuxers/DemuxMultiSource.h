@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2015 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -44,29 +44,31 @@ class CDemuxMultiSource : public CDVDDemux
 
 public:
   CDemuxMultiSource();
-  virtual ~CDemuxMultiSource();
-  
-  void Abort();
-  virtual void EnableStream(int64_t demuxerId, int id, bool enable) override;
-  void Flush();
-  virtual std::string GetFileName() { return ""; };
+  ~CDemuxMultiSource() override;
+
+  bool Open(std::shared_ptr<CDVDInputStream> pInput);
+
+  // implementation of CDVDDemux
+  void Abort() override;
+  void EnableStream(int64_t demuxerId, int id, bool enable) override;
+  void Flush() override;
   int GetNrOfStreams() const override;
-  virtual CDemuxStream* GetStream(int iStreamId)const override { return nullptr; } ;
-  virtual CDemuxStream* GetStream(int64_t demuxerId, int iStreamId) const override;
-  virtual std::vector<CDemuxStream*> GetStreams() const override;
+  CDemuxStream* GetStream(int64_t demuxerId, int iStreamId) const override;
+  std::vector<CDemuxStream*> GetStreams() const override;
   std::string GetStreamCodecName(int64_t demuxerId, int iStreamId) override;
-  int GetStreamLength();
-  bool Open(CDVDInputStream* pInput);
-  DemuxPacket* Read();
-  void Reset();
+  int GetStreamLength() override;
+  DemuxPacket* Read() override;
+  bool Reset() override;
   bool SeekTime(double time, bool backwards = false, double* startpts = NULL) override;
-  virtual void SetSpeed(int iSpeed) {};
+
+protected:
+  CDemuxStream* GetStream(int iStreamId) const override { return nullptr; }
 
 private:
   void Dispose();
   void SetMissingStreamDetails(DemuxPtr demuxer);
 
-  InputStreamMultiStreams* m_pInput = NULL;
+  std::shared_ptr<InputStreamMultiStreams> m_pInput = NULL;
   std::map<DemuxPtr, InputStreamPtr> m_DemuxerToInputStreamMap;
   DemuxQueue m_demuxerQueue;
   std::map<int64_t, DemuxPtr> m_demuxerMap;

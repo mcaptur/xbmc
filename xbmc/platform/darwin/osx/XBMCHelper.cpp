@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -33,7 +33,6 @@
 #include "dialogs/GUIDialogOK.h"
 #include "dialogs/GUIDialogYesNo.h"
 #include "utils/log.h"
-#include "system.h"
 #include "settings/lib/Setting.h"
 #include "settings/Settings.h"
 #include "utils/SystemInfo.h"
@@ -44,7 +43,7 @@
 
 #include "threads/Atomics.h"
 
-static long sg_singleton_lock_variable = 0;
+static std::atomic_flag sg_singleton_lock_variable = ATOMIC_FLAG_INIT;
 XBMCHelper* XBMCHelper::smp_instance = 0;
 
 #define XBMC_HELPER_PROGRAM "XBMCHelper"
@@ -97,7 +96,7 @@ XBMCHelper::XBMCHelper()
 }
 
 /////////////////////////////////////////////////////////////////////////////
-bool XBMCHelper::OnSettingChanging(const CSetting *setting)
+bool XBMCHelper::OnSettingChanging(std::shared_ptr<const CSetting> setting)
 {
   if (setting == NULL)
     return false;
@@ -105,7 +104,7 @@ bool XBMCHelper::OnSettingChanging(const CSetting *setting)
   const std::string &settingId = setting->GetId();
   if (settingId == CSettings::SETTING_INPUT_APPLEREMOTEMODE)
   {
-    int remoteMode = ((CSettingInt*)setting)->GetValue();
+    int remoteMode = std::static_pointer_cast<const CSettingInt>(setting)->GetValue();
 
     // if it's not disabled, start the event server or else apple remote won't work
     if (remoteMode != APPLE_REMOTE_DISABLED)

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,16 +18,15 @@
  *
  */
 
+#include "PVRChannelGroupsContainer.h"
+
 #include "URL.h"
-#include "dialogs/GUIDialogOK.h"
 #include "guilib/LocalizeStrings.h"
-#include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
+#include "utils/log.h"
 
 #include "pvr/PVRManager.h"
-
-#include "PVRChannelGroupsContainer.h"
 
 using namespace PVR;
 
@@ -163,13 +162,13 @@ bool CPVRChannelGroupsContainer::GetDirectory(const std::string& strPath, CFileI
     /* all tv channels */
     item.reset(new CFileItem(strBase + "/tv/", true));
     item->SetLabel(g_localizeStrings.Get(19020));
-    item->SetLabelPreformated(true);
+    item->SetLabelPreformatted(true);
     results.Add(item);
 
     /* all radio channels */
     item.reset(new CFileItem(strBase + "/radio/", true));
     item->SetLabel(g_localizeStrings.Get(19021));
-    item->SetLabelPreformated(true);
+    item->SetLabelPreformatted(true);
     results.Add(item);
 
     return true;
@@ -304,9 +303,7 @@ CFileItemPtr CPVRChannelGroupsContainer::GetLastPlayedChannel(void) const
   CFileItemPtr channelRadio = m_groupsRadio->GetGroupAll()->GetLastPlayedChannel();
 
   if (!channelTV ||
-      !channelTV->HasPVRChannelInfoTag() ||
-      (channelRadio && channelRadio->HasPVRChannelInfoTag() &&
-       channelRadio->GetPVRChannelInfoTag()->LastWatched() > channelTV->GetPVRChannelInfoTag()->LastWatched()))
+      (channelRadio && channelRadio->GetPVRChannelInfoTag()->LastWatched() > channelTV->GetPVRChannelInfoTag()->LastWatched()))
      return channelRadio;
 
   return channelTV;

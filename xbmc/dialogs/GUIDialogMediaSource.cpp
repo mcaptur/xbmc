@@ -1,7 +1,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
 #include "GUIDialogFileBrowser.h"
 #include "video/windows/GUIWindowVideoBase.h"
 #include "music/windows/GUIWindowMusicBase.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "input/Key.h"
 #include "Util.h"
@@ -45,6 +46,10 @@
 #if defined(TARGET_ANDROID)
 #include "platform/android/activity/XBMCApp.h"
 #include "filesystem/File.h"
+#endif
+
+#ifdef TARGET_WINDOWS_STORE
+#include "platform/win10/filesystem/WinLibraryDirectory.h"
 #endif
 
 using namespace XFILE;
@@ -132,7 +137,7 @@ bool CGUIDialogMediaSource::OnMessage(CGUIMessage& message)
 // \return True if the media source is added, false otherwise.
 bool CGUIDialogMediaSource::ShowAndAddMediaSource(const std::string &type)
 {
-  CGUIDialogMediaSource *dialog = (CGUIDialogMediaSource *)g_windowManager.GetWindow(WINDOW_DIALOG_MEDIA_SOURCE);
+  CGUIDialogMediaSource *dialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogMediaSource>(WINDOW_DIALOG_MEDIA_SOURCE);
   if (!dialog) return false;
   dialog->Initialize();
   dialog->SetShare(CMediaSource());
@@ -185,7 +190,7 @@ bool CGUIDialogMediaSource::ShowAndEditMediaSource(const std::string &type, cons
 bool CGUIDialogMediaSource::ShowAndEditMediaSource(const std::string &type, const CMediaSource &share)
 {
   std::string strOldName = share.strName;
-  CGUIDialogMediaSource *dialog = (CGUIDialogMediaSource *)g_windowManager.GetWindow(WINDOW_DIALOG_MEDIA_SOURCE);
+  CGUIDialogMediaSource *dialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogMediaSource>(WINDOW_DIALOG_MEDIA_SOURCE);
   if (!dialog) return false;
   dialog->Initialize();
   dialog->SetShare(share);
@@ -248,6 +253,18 @@ void CGUIDialogMediaSource::OnPathBrowse(int item)
     }
 #endif
 
+#if defined(TARGET_WINDOWS_STORE)
+    // add the default UWP music directory
+    std::string path;
+    if (XFILE::CWinLibraryDirectory::GetStoragePath(m_type, path) && !path.empty() && CDirectory::Exists(path))
+    {
+      share1.strPath = path;
+      share1.strName = g_localizeStrings.Get(20245);
+      share1.m_ignore = true;
+      extraShares.push_back(share1);
+    }
+#endif
+
     // add the music playlist location
     share1.strPath = "special://musicplaylists/";
     share1.strName = g_localizeStrings.Get(20011);
@@ -285,6 +302,17 @@ void CGUIDialogMediaSource::OnPathBrowse(int item)
     {
       share1.strPath = path;
       share1.strName = g_localizeStrings.Get(20241);
+      share1.m_ignore = true;
+      extraShares.push_back(share1);
+    }
+#endif
+#if defined(TARGET_WINDOWS_STORE)
+    // add the default UWP music directory
+    std::string path;
+    if (XFILE::CWinLibraryDirectory::GetStoragePath(m_type, path) && !path.empty() && CDirectory::Exists(path))
+    {
+      share1.strPath = path;
+      share1.strName = g_localizeStrings.Get(20246);
       share1.m_ignore = true;
       extraShares.push_back(share1);
     }
@@ -329,6 +357,25 @@ void CGUIDialogMediaSource::OnPathBrowse(int item)
     {
       share1.strPath = path;
       share1.strName = g_localizeStrings.Get(20243);
+      share1.m_ignore = true;
+      extraShares.push_back(share1);
+    }
+#endif
+#if defined(TARGET_WINDOWS_STORE)
+    // add the default UWP music directory
+    std::string path;
+    if (XFILE::CWinLibraryDirectory::GetStoragePath(m_type, path) && !path.empty() && CDirectory::Exists(path))
+    {
+      share1.strPath = path;
+      share1.strName = g_localizeStrings.Get(20247);
+      share1.m_ignore = true;
+      extraShares.push_back(share1);
+    }
+    path.clear();
+    if (XFILE::CWinLibraryDirectory::GetStoragePath("photos", path) && !path.empty() && CDirectory::Exists(path))
+    {
+      share1.strPath = path;
+      share1.strName = g_localizeStrings.Get(20248);
       share1.m_ignore = true;
       extraShares.push_back(share1);
     }
@@ -402,6 +449,7 @@ void CGUIDialogMediaSource::OnOK()
     m_confirmed = true;
     Close();
     if (!StringUtils::StartsWithNoCase(share.strPath, "rss://") &&
+      !StringUtils::StartsWithNoCase(share.strPath, "rsss://") &&
       !StringUtils::StartsWithNoCase(share.strPath, "upnp://"))
     {
       if (m_type == "video" && !URIUtils::IsLiveTV(share.strPath))
@@ -495,7 +543,7 @@ void CGUIDialogMediaSource::SetTypeOfMedia(const std::string &type, bool editNot
     else if (type == "music")
       heading = g_localizeStrings.Get(10049);
     else if (type == "pictures")
-      heading = g_localizeStrings.Get(10050);
+      heading = g_localizeStrings.Get(13006);
     else if (type == "games")
       heading = g_localizeStrings.Get(35251); // "Add game source"
     else if (type == "programs")
@@ -554,15 +602,16 @@ std::vector<std::string> CGUIDialogMediaSource::GetPaths() const
   for (int i = 0; i < m_paths->Size(); i++)
   {
     if (!m_paths->Get(i)->GetPath().empty())
-    { // strip off the user and password for smb paths (anything that the password manager can auth)
+    { // strip off the user and password for supported paths (anything that the password manager can auth)
       // and add the user/pass to the password manager - note, we haven't confirmed that it works
-      // at this point, but if it doesn't, the user will get prompted anyway in SMBDirectory.
+      // at this point, but if it doesn't, the user will get prompted anyway in implementation.
       CURL url(m_paths->Get(i)->GetPath());
-      if (url.IsProtocol("smb"))
+      if (CPasswordManager::GetInstance().IsURLSupported(url) && !url.GetUserName().empty())
       {
         CPasswordManager::GetInstance().SaveAuthenticatedURL(url);
         url.SetPassword("");
         url.SetUserName("");
+        url.SetDomain("");
       }
       paths.push_back(url.Get());
     }

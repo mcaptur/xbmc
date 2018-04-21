@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,11 +27,11 @@
 class CGUIDialogProgressBarHandle
 {
 public:
-  CGUIDialogProgressBarHandle(const std::string &strTitle) :
+  explicit CGUIDialogProgressBarHandle(const std::string &strTitle) :
     m_fPercentage(0),
     m_strTitle(strTitle),
     m_bFinished(false) {}
-  virtual ~CGUIDialogProgressBarHandle(void) {}
+  virtual ~CGUIDialogProgressBarHandle(void) = default;
 
   const std::string &Title(void) { return m_strTitle; }
   void SetTitle(const std::string &strTitle);
@@ -58,9 +58,9 @@ class CGUIDialogExtendedProgressBar : public CGUIDialog
 {
 public:
   CGUIDialogExtendedProgressBar(void);
-  virtual ~CGUIDialogExtendedProgressBar(void) {};
-  virtual bool OnMessage(CGUIMessage& message);
-  virtual void Process(unsigned int currentTime, CDirtyRegionList &dirtyregions);
+  ~CGUIDialogExtendedProgressBar(void) override = default;
+  bool OnMessage(CGUIMessage& message) override;
+  void Process(unsigned int currentTime, CDirtyRegionList &dirtyregions) override;
 
   CGUIDialogProgressBarHandle *GetHandle(const std::string &strTitle);
 

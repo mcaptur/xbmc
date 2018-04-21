@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2007-2015 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,11 +20,8 @@
 
 #pragma once
 
-#include "system.h"
-
-#if defined(TARGET_DARWIN_OSX)
-
 #include "cores/VideoPlayer/VideoRenderers/LinuxRendererGL.h"
+
 
 class CRendererVTB : public CLinuxRendererGL
 {
@@ -32,15 +29,17 @@ public:
   CRendererVTB();
   virtual ~CRendererVTB();
 
+  static CBaseRenderer* Create(CVideoBuffer *buffer);
+  static bool Register();
+  
   // Player functions
-  virtual void AddVideoPictureHW(DVDVideoPicture &picture, int index) override;
   virtual void ReleaseBuffer(int idx) override;
   virtual bool NeedBuffer(int idx) override;
-  virtual CRenderInfo GetRenderInfo() override;
 
 protected:
   virtual bool LoadShadersHook() override;
   virtual void AfterRenderHook(int idx) override;
+  virtual EShaderFormat GetShaderFormat() override;
 
   // textures
   virtual bool UploadTexture(int index) override;
@@ -48,4 +47,3 @@ protected:
   virtual bool CreateTexture(int index) override;
 };
 
-#endif

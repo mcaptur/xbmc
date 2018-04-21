@@ -23,6 +23,8 @@
 #include "GUIWindowManager.h"
 #include "GUIControl.h"
 #include "GUIInfoManager.h"
+#include "GUIComponent.h"
+#include "ServiceBroker.h"
 
 CGUIAction::CGUIAction()
 {
@@ -37,12 +39,15 @@ CGUIAction::CGUIAction(int controlID)
 
 bool CGUIAction::ExecuteActions(int controlID, int parentID, const CGUIListItemPtr &item /* = NULL */) const
 {
-  if (m_actions.empty()) return false;
+  if (m_actions.empty())
+    return false;
+
+  CGUIInfoManager& infoMgr = CServiceBroker::GetGUI()->GetInfoManager();
   // take a copy of actions that satisfy our conditions
   std::vector<std::string> actions;
-  for (ciActions it = m_actions.begin() ; it != m_actions.end() ; ++it)
+  for (ciActions it = m_actions.begin(); it != m_actions.end(); ++it)
   {
-    if (it->condition.empty() || g_infoManager.EvaluateBool(it->condition, 0, item))
+    if (it->condition.empty() || infoMgr.EvaluateBool(it->condition, 0, item))
     {
       if (!StringUtils::IsInteger(it->action))
         actions.push_back(it->action);
@@ -55,9 +60,9 @@ bool CGUIAction::ExecuteActions(int controlID, int parentID, const CGUIListItemP
     CGUIMessage msg(GUI_MSG_EXECUTE, controlID, parentID, 0, 0, item);
     msg.SetStringParam(*i);
     if (m_sendThreadMessages)
-      g_windowManager.SendThreadMessage(msg);
+      CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
     else
-      g_windowManager.SendMessage(msg);
+      CServiceBroker::GetGUI()->GetWindowManager().SendMessage(msg);
     retval = true;
   }
   return retval;
@@ -65,11 +70,12 @@ bool CGUIAction::ExecuteActions(int controlID, int parentID, const CGUIListItemP
 
 int CGUIAction::GetNavigation() const
 {
-  for (ciActions it = m_actions.begin() ; it != m_actions.end() ; ++it)
+  CGUIInfoManager& infoMgr = CServiceBroker::GetGUI()->GetInfoManager();
+  for (ciActions it = m_actions.begin(); it != m_actions.end(); ++it)
   {
     if (StringUtils::IsInteger(it->action))
     {
-      if (it->condition.empty() || g_infoManager.EvaluateBool(it->condition))
+      if (it->condition.empty() || infoMgr.EvaluateBool(it->condition))
         return atoi(it->action.c_str());
     }
   }
@@ -78,9 +84,11 @@ int CGUIAction::GetNavigation() const
 
 void CGUIAction::SetNavigation(int id)
 {
-  if (id == 0) return;
+  if (id == 0)
+    return;
+
   std::string strId = StringUtils::Format("%i", id);
-  for (iActions it = m_actions.begin() ; it != m_actions.end() ; ++it)
+  for (iActions it = m_actions.begin(); it != m_actions.end(); ++it)
   {
     if (StringUtils::IsInteger(it->action) && it->condition.empty())
     {
@@ -95,9 +103,10 @@ void CGUIAction::SetNavigation(int id)
 
 bool CGUIAction::HasActionsMeetingCondition() const
 {
-  for (ciActions it = m_actions.begin() ; it != m_actions.end() ; ++it)
+  CGUIInfoManager& infoMgr = CServiceBroker::GetGUI()->GetInfoManager();
+  for (ciActions it = m_actions.begin(); it != m_actions.end(); ++it)
   {
-    if (it->condition.empty() || g_infoManager.EvaluateBool(it->condition))
+    if (it->condition.empty() || infoMgr.EvaluateBool(it->condition))
       return true;
   }
   return false;

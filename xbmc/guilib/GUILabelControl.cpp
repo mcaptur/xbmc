@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,7 +20,10 @@
 
 #include "GUILabelControl.h"
 #include "utils/CharsetConverter.h"
+#include "utils/Color.h"
 #include "utils/StringUtils.h"
+
+using namespace KODI::GUILIB;
 
 CGUILabelControl::CGUILabelControl(int parentID, int controlID, float posX, float posY, float width, float height, const CLabelInfo& labelInfo, bool wrapMultiLine, bool bHasPath)
     : CGUIControl(parentID, controlID, posX, posY, width, height)
@@ -34,11 +37,10 @@ CGUILabelControl::CGUILabelControl(int parentID, int controlID, float posX, floa
   m_startHighlight = m_endHighlight = 0;
   m_startSelection = m_endSelection = 0;
   m_minWidth = 0;
+  m_label.SetScrollLoopCount(2);
 }
 
-CGUILabelControl::~CGUILabelControl(void)
-{
-}
+CGUILabelControl::~CGUILabelControl(void) = default;
 
 void CGUILabelControl::ShowCursor(bool bShow)
 {
@@ -59,7 +61,7 @@ void CGUILabelControl::SetCursorPos(int iPos)
   m_iCursorPos = iPos;
 }
 
-void CGUILabelControl::SetInfo(const CGUIInfoLabel &infoLabel)
+void CGUILabelControl::SetInfo(const GUIINFO::CGUIInfoLabel &infoLabel)
 {
   m_infoLabel = infoLabel;
 }
@@ -82,10 +84,10 @@ void CGUILabelControl::UpdateInfo(const CGUIListItem *item)
     std::wstring utf16;
     g_charsetConverter.utf8ToW(label, utf16);
     vecText text; text.reserve(utf16.size()+1);
-    vecColors colors;
+    std::vector<UTILS::Color> colors;
     colors.push_back(m_label.GetLabelInfo().textColor);
     colors.push_back(m_label.GetLabelInfo().disabledColor);
-    color_t select = m_label.GetLabelInfo().selectedColor;
+    UTILS::Color select = m_label.GetLabelInfo().selectedColor;
     if (!select)
       select = 0xFFFF0000;
     colors.push_back(select);
@@ -202,7 +204,7 @@ void CGUILabelControl::SetWidth(float width)
 
 bool CGUILabelControl::OnMessage(CGUIMessage& message)
 {
-  if ( message.GetControlId() == GetID() )
+  if (message.GetControlId() == GetID())
   {
     if (message.GetMessage() == GUI_MSG_LABEL_SET)
     {
@@ -210,6 +212,8 @@ bool CGUILabelControl::OnMessage(CGUIMessage& message)
       return true;
     }
   }
+  if (message.GetMessage() == GUI_MSG_REFRESH_TIMER && IsVisible())
+    UpdateInfo();
 
   return CGUIControl::OnMessage(message);
 }

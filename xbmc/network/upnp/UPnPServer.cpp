@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -32,12 +32,15 @@
 #include "filesystem/MusicDatabaseDirectory.h"
 #include "filesystem/SpecialProtocol.h"
 #include "filesystem/VideoDatabaseDirectory.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/WindowIDs.h"
+#include "guilib/LocalizeStrings.h"
 #include "music/tags/MusicInfoTag.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
+#include "utils/Digest.h"
+#include "utils/FileExtensionProvider.h"
 #include "utils/log.h"
-#include "utils/md5.h"
 #include "utils/SortUtils.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
@@ -48,11 +51,13 @@
 #include "guilib/GUIWindowManager.h"
 #include "GUIUserMessages.h"
 #include "utils/FileUtils.h"
+#include "TextureDatabase.h"
 
 NPT_SET_LOCAL_LOGGER("xbmc.upnp.server")
 
 using namespace ANNOUNCEMENT;
 using namespace XFILE;
+using KODI::UTILITY::CDigest;
 
 namespace UPNP
 {
@@ -233,19 +238,24 @@ NPT_String CUPnPServer::BuildSafeResourceUri(const NPT_HttpUrl &rooturi,
 {
     CURL url(file_path);
     std::string md5;
+    std::string mapped_file_path(file_path);
 
     // determine the filename to provide context to md5'd urls
     std::string filename;
     if (url.IsProtocol("image"))
+    {
       filename = URIUtils::GetFileName(url.GetHostName());
+      // Remove trailing / for Platinum/Neptune to recognize the file extension and use the correct mime type when serving the image
+      URIUtils::RemoveSlashAtEnd(mapped_file_path);
+    }
     else
-      filename = URIUtils::GetFileName(file_path);
+      filename = URIUtils::GetFileName(mapped_file_path);
 
     filename = CURL::Encode(filename);
-    md5 = XBMC::XBMC_MD5::GetMD5(file_path);
+    md5 = CDigest::Calculate(CDigest::Type::MD5, mapped_file_path);
     md5 += "/" + filename;
     { NPT_AutoLock lock(m_FileMutex);
-      NPT_CHECK(m_FileMap.Put(md5.c_str(), file_path));
+      NPT_CHECK(m_FileMap.Put(md5.c_str(), mapped_file_path.c_str()));
     }
     return PLT_FileMediaServer::BuildSafeResourceUri(rooturi, host, md5.c_str());
 }
@@ -298,7 +308,7 @@ CUPnPServer::Build(CFileItemPtr                  item,
         if (path.StartsWith("musicdb://")) {
             if (path == "musicdb://" ) {
                 item->SetLabel("Music Library");
-                item->SetLabelPreformated(true);
+                item->SetLabelPreformatted(true);
             } else {
                 if (!item->HasMusicInfoTag()) {
                     MUSICDATABASEDIRECTORY::CQueryParams params;
@@ -330,14 +340,14 @@ CUPnPServer::Build(CFileItemPtr                  item,
                     std::string label;
                     if (CMusicDatabaseDirectory::GetLabel((const char*)path, label)) {
                         item->SetLabel(label);
-                        item->SetLabelPreformated(true);
+                        item->SetLabelPreformatted(true);
                     }
                 }
             }
         } else if (file_path.StartsWith("library://") || file_path.StartsWith("videodb://")) {
             if (path == "library://video/" ) {
                 item->SetLabel("Video Library");
-                item->SetLabelPreformated(true);
+                item->SetLabelPreformatted(true);
             } else {
                 if (!item->HasVideoInfoTag()) {
                     VIDEODATABASEDIRECTORY::CQueryParams params;
@@ -360,13 +370,13 @@ CUPnPServer::Build(CFileItemPtr                  item,
                     // for tvshows and seasons, iEpisode and playCount are
                     // invalid
                     item->GetVideoInfoTag()->m_iEpisode = (int)item->GetProperty("totalepisodes").asInteger();
-                    item->GetVideoInfoTag()->m_playCount = (int)item->GetProperty("watchedepisodes").asInteger();
+                    item->GetVideoInfoTag()->SetPlayCount(static_cast<int>(item->GetProperty("watchedepisodes").asInteger()));
                 }
 
                 // try to grab title from tag
                 if (item->HasVideoInfoTag() && !item->GetVideoInfoTag()->m_strTitle.empty()) {
                     item->SetLabel(item->GetVideoInfoTag()->m_strTitle);
-                    item->SetLabelPreformated(true);
+                    item->SetLabelPreformatted(true);
                 }
 
                 // try to grab it from the folder
@@ -374,7 +384,7 @@ CUPnPServer::Build(CFileItemPtr                  item,
                     std::string label;
                     if (CVideoDatabaseDirectory::GetLabel((const char*)path, label)) {
                         item->SetLabel(label);
-                        item->SetLabelPreformated(true);
+                        item->SetLabelPreformatted(true);
                     }
                 }
             }
@@ -552,7 +562,7 @@ CUPnPServer::OnBrowseMetadata(PLT_ActionReference&          action,
             id += "/";
             item.reset(new CFileItem((const char*)id, true));
             item->SetLabel("Root");
-            item->SetLabelPreformated(true);
+            item->SetLabelPreformatted(true);
             object = Build(item, true, context, thumb_loader);
             object->m_ParentID = "-1";
         } else {
@@ -663,13 +673,13 @@ CUPnPServer::OnBrowseDirectChildren(PLT_ActionReference&          action,
             // music library
             item.reset(new CFileItem("musicdb://", true));
             item->SetLabel("Music Library");
-            item->SetLabelPreformated(true);
+            item->SetLabelPreformatted(true);
             items.Add(item);
 
             // video library
             item.reset(new CFileItem("library://video/", true));
             item->SetLabel("Video Library");
-            item->SetLabelPreformated(true);
+            item->SetLabelPreformatted(true);
             items.Add(item);
 
             items.Sort(SortByLabel, SortOrderAscending);
@@ -677,10 +687,10 @@ CUPnPServer::OnBrowseDirectChildren(PLT_ActionReference&          action,
             // this is the only way to hide unplayable items in the 'files'
             // view as we cannot tell what context (eg music vs video) the
             // request came from
-            std::string supported = g_advancedSettings.m_pictureExtensions + "|"
-                                  + g_advancedSettings.m_videoExtensions + "|"
-                                  + g_advancedSettings.GetMusicExtensions() + "|"
-                                  + g_advancedSettings.m_discStubExtensions;
+            std::string supported = CServiceBroker::GetFileExtensionProvider().GetPictureExtensions() + "|"
+                                  + CServiceBroker::GetFileExtensionProvider().GetVideoExtensions() + "|"
+                                  + CServiceBroker::GetFileExtensionProvider().GetMusicExtensions() + "|"
+                                  + CServiceBroker::GetFileExtensionProvider().GetPictureExtensions();
             CDirectory::GetDirectory((const char*)parent_id, items, supported);
             DefaultSortItems(items);
         }
@@ -867,7 +877,7 @@ CUPnPServer::OnSearchContainer(PLT_ActionReference&          action,
                 // all tracks of a specific genre
                 else if (count == 2)
                     id += "-1/-1/";
-                // all tracks of a specific genre of a specfic artist
+                // all tracks of a specific genre of a specific artist
                 else if (count == 3)
                     id += "-1/";
             } else if (id.StartsWith("musicdb://artists/")) {
@@ -978,14 +988,14 @@ CUPnPServer::OnSearchContainer(PLT_ActionReference&          action,
       itemsall.Append(items);
       items.Clear();
 
-      if (!database.GetEpisodesByWhere("videodb://tvshows/titles/", "", items)) {
+      if (!database.GetEpisodesByWhere("videodb://tvshows/titles/", CDatabase::Filter(), items)) {
         action->SetError(800, "Internal Error");
         return NPT_SUCCESS;
       }
       itemsall.Append(items);
       items.Clear();
 
-      if (!database.GetMusicVideosByWhere("videodb://musicvideos/titles/", "", items)) {
+      if (!database.GetMusicVideosByWhere("videodb://musicvideos/titles/", CDatabase::Filter(), items)) {
         action->SetError(800, "Internal Error");
         return NPT_SUCCESS;
       }
@@ -1115,8 +1125,8 @@ CUPnPServer::OnUpdateObject(PLT_ActionReference&             action,
              CUtil::DeleteMusicDatabaseDirectoryCache();
 
         CFileItemPtr msgItem(new CFileItem(updated));
-        CGUIMessage message(GUI_MSG_NOTIFY_ALL, g_windowManager.GetActiveWindow(), 0, GUI_MSG_UPDATE_ITEM, 1, msgItem);
-        g_windowManager.SendThreadMessage(message);
+        CGUIMessage message(GUI_MSG_NOTIFY_ALL, CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow(), 0, GUI_MSG_UPDATE_ITEM, 1, msgItem);
+        CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(message);
     }
 
     NPT_CHECK_LABEL(service->PauseEventing(false), error);
@@ -1191,9 +1201,10 @@ CUPnPServer::ServeFile(const NPT_HttpRequest&              request,
         return NPT_SUCCESS;
     }
 
-    if(URIUtils::IsURL((const char*)file_path))
+    if (URIUtils::IsURL(static_cast<const char*>(file_path)))
     {
-      std::string disp = "inline; filename=\"" + URIUtils::GetFileName((const char*)file_path) + "\"";
+      CURL url(CTextureUtils::UnwrapImageURL(static_cast<const char*>(file_path)));
+      std::string disp = "inline; filename=\"" + URIUtils::GetFileName(url) + "\"";
       response.GetHeaders().SetHeader("Content-Disposition", disp.c_str());
     }
 

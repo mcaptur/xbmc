@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2010-2016 Team Kodi
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -64,7 +64,8 @@ protected:
   bool m_hasData;
   bool m_needData;
   int m_sampleOffset;
-  int m_bufferedSamples;
+  int64_t m_SamplesIn;
+  int64_t m_SamplesOut;
 };
 
 }

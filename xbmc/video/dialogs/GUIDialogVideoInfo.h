@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ class CGUIDialogVideoInfo :
 {
 public:
   CGUIDialogVideoInfo(void);
-  virtual ~CGUIDialogVideoInfo(void);
+  ~CGUIDialogVideoInfo(void) override;
   bool OnMessage(CGUIMessage& message) override;
   bool OnAction(const CAction &action) override;
   void SetMovie(const CFileItem *item);

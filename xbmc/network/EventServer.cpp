@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,10 +18,6 @@
  *
  */
 
-#include "system.h"
-
-#ifdef HAS_EVENT_SERVER
-
 #include "EventServer.h"
 #include "EventPacket.h"
 #include "EventClient.h"
@@ -30,7 +26,7 @@
 #include "Application.h"
 #include "ServiceBroker.h"
 #include "interfaces/builtins/Builtins.h"
-#include "input/ButtonTranslator.h"
+#include "input/ActionTranslator.h"
 #include "threads/SingleLock.h"
 #include "Zeroconf.h"
 #include "guilib/GUIAudioManager.h"
@@ -348,8 +344,8 @@ bool CEventServer::ExecuteNextAction()
 
       case AT_BUTTON:
         {
-          int actionID;
-          CButtonTranslator::TranslateActionString(actionEvent.actionName.c_str(), actionID);
+          unsigned int actionID;
+          CActionTranslator::TranslateString(actionEvent.actionName, actionID);
           CAction action(actionID, 1.0f, 0.0f, actionEvent.actionName);
           g_audioManager.PlayActionSound(action);
           g_application.OnAction(action);
@@ -393,5 +389,3 @@ bool CEventServer::GetMousePos(float &x, float &y)
   }
   return false;
 }
-
-#endif // HAS_EVENT_SERVER

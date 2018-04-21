@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2012-2016 Team Kodi
+ *      Copyright (C) 2012-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -22,7 +22,7 @@
 #include "addons/BinaryAddonCache.h"
 #include "games/addons/GameClient.h"
 #include "games/GameUtils.h"
-#include "guilib/GraphicContext.h" // include before ViewState.h
+#include "windowing/GraphicContext.h" // include before ViewState.h
 #include "guilib/LocalizeStrings.h"
 #include "guilib/WindowIDs.h"
 #include "input/Key.h"
@@ -37,6 +37,7 @@
 #include <assert.h>
 #include <set>
 
+using namespace KODI;
 using namespace GAME;
 
 CGUIViewStateWindowGames::CGUIViewStateWindowGames(const CFileItemList& items) :

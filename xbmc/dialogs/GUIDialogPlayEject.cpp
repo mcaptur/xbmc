@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,11 +19,13 @@
  */
 
 #include "GUIDialogPlayEject.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "storage/MediaManager.h"
 #include "utils/log.h"
 #include "utils/Variant.h"
 #include "utils/XMLUtils.h"
+#include "ServiceBroker.h"
 
 #include <utility>
 
@@ -35,9 +37,7 @@ CGUIDialogPlayEject::CGUIDialogPlayEject()
 {
 }
 
-CGUIDialogPlayEject::~CGUIDialogPlayEject()
-{
-}
+CGUIDialogPlayEject::~CGUIDialogPlayEject() = default;
 
 bool CGUIDialogPlayEject::OnMessage(CGUIMessage& message)
 {
@@ -94,7 +94,7 @@ bool CGUIDialogPlayEject::ShowAndGetInput(const CFileItem & item,
     return false;
 
   // Create the dialog
-  CGUIDialogPlayEject * pDialog = (CGUIDialogPlayEject *)g_windowManager.
+  CGUIDialogPlayEject * pDialog = (CGUIDialogPlayEject *)CServiceBroker::GetGUI()->GetWindowManager().
     GetWindow(WINDOW_DIALOG_PLAY_EJECT);
   if (!pDialog)
     return false;

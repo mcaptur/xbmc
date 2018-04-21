@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2011-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -95,15 +95,16 @@ public:
   bool HasJob(const std::string& ID) const;
 
   /*! Install update and block until all updates have installed. */
+  void InstallUpdatesAndWait();
   void InstallUpdates();
 
-  void OnJobComplete(unsigned int jobID, bool success, CJob* job);
-  void OnJobProgress(unsigned int jobID, unsigned int progress, unsigned int total, const CJob *job);
+  void OnJobComplete(unsigned int jobID, bool success, CJob* job) override;
+  void OnJobProgress(unsigned int jobID, unsigned int progress, unsigned int total, const CJob *job) override;
 
   class CDownloadJob
   {
   public:
-    CDownloadJob(unsigned int id)
+    explicit CDownloadJob(unsigned int id)
     {
       jobID = id;
       progress = 0;
@@ -115,21 +116,20 @@ public:
   typedef std::map<std::string, CDownloadJob> JobMap;
 
 private:
-  // private construction, and no assignements; use the provided singleton methods
+  // private construction, and no assignments; use the provided singleton methods
   CAddonInstaller();
-  CAddonInstaller(const CAddonInstaller&);
-  CAddonInstaller const& operator=(CAddonInstaller const&);
-  virtual ~CAddonInstaller();
+  CAddonInstaller(const CAddonInstaller&) = delete;
+  CAddonInstaller const& operator=(CAddonInstaller const&) = delete;
+  ~CAddonInstaller() override;
 
   /*! \brief Install an addon from a repository or zip
    \param addon the AddonPtr describing the addon
    \param repo the repository to install addon from
-   \param hash the hash to verify the install. Defaults to "".
    \param background whether to install in the background or not. Defaults to true.
    \return true on successful install, false on failure.
    */
   bool DoInstall(const ADDON::AddonPtr &addon, const ADDON::RepositoryPtr &repo,
-      const std::string &hash = "", bool background = true, bool modal = false);
+      bool background = true, bool modal = false, bool autoUpdate = false);
 
   /*! \brief Check whether dependencies of an addon exist or are installable.
    Iterates through the addon's dependencies, checking they're installed or installable.
@@ -153,9 +153,9 @@ private:
 class CAddonInstallJob : public CFileOperationJob
 {
 public:
-  CAddonInstallJob(const ADDON::AddonPtr &addon, const ADDON::AddonPtr &repo, const std::string &hash = "");
+  CAddonInstallJob(const ADDON::AddonPtr& addon, const ADDON::RepositoryPtr& repo, bool isAutoUpdate);
 
-  virtual bool DoWork();
+  bool DoWork() override;
 
   /*! \brief Find the add-on and itshash for the given add-on ID
    *  \param addonID ID of the add-on to find
@@ -164,13 +164,12 @@ public:
    *  \param hash Hash of the add-on
    *  \return True if the add-on and its hash were found, false otherwise.
    */
-  static bool GetAddonWithHash(const std::string& addonID, ADDON::RepositoryPtr& repo,
-      ADDON::AddonPtr& addon, std::string& hash);
+  static bool GetAddon(const std::string& addonID, ADDON::RepositoryPtr& repo, ADDON::AddonPtr& addon);
 
 private:
   void OnPreInstall();
   void OnPostInstall();
-  bool Install(const std::string &installFrom, const ADDON::AddonPtr& repo = ADDON::AddonPtr());
+  bool Install(const std::string &installFrom, const ADDON::RepositoryPtr& repo = ADDON::RepositoryPtr());
   bool DownloadPackage(const std::string &path, const std::string &dest);
 
   bool DoFileOperation(FileAction action, CFileItemList &items, const std::string &file, bool useSameJob = true);
@@ -183,20 +182,21 @@ private:
   void ReportInstallError(const std::string& addonID, const std::string& fileName, const std::string& message = "");
 
   ADDON::AddonPtr m_addon;
-  ADDON::AddonPtr m_repo;
-  std::string m_hash;
-  bool m_update;
+  ADDON::RepositoryPtr m_repo;
+  bool m_isUpdate;
+  bool m_isAutoUpdate;
 };
 
 class CAddonUnInstallJob : public CFileOperationJob
 {
 public:
-  CAddonUnInstallJob(const ADDON::AddonPtr &addon);
+  CAddonUnInstallJob(const ADDON::AddonPtr &addon, bool removeData);
 
-  virtual bool DoWork();
+  bool DoWork() override;
 
 private:
   void ClearFavourites();
 
   ADDON::AddonPtr m_addon;
+  bool m_removeData;
 };

@@ -22,7 +22,6 @@
 
 #include <stdio.h>
 
-#include "system.h"
 #include "threads/CriticalSection.h"
 
 #if defined(TARGET_POSIX) && !defined(TARGET_DARWIN) && !defined(TARGET_FREEBSD) && !defined(TARGET_ANDROID) && !defined(__UCLIBC__)
@@ -39,20 +38,14 @@ namespace XFILE
   class CFile;
 }
 
-#if defined(TARGET_WINDOWS) && _MSC_VER >= 1900
-struct kodi_iobuf {
-  int   _file;
-};
-#endif
-
 typedef struct stEmuFileObject
 {
-  FILE    file_emu;
   XFILE::CFile*  file_xbmc;
   CCriticalSection *file_lock;
   int mode;
   //Stick this last to avoid 3-7 bytes of padding
   bool    used;
+  int     fd;
 } EmuFileObject;
 
 class CEmuFileWrapper

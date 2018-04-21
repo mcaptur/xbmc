@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -131,8 +131,8 @@ namespace XBMCAddon
     /// @param updateListing        [opt] bool - True=this folder should
     ///                             update the current listing/False=Folder
     ///                             is a subfolder(Default).
-    /// @param cacheToDisc          [opt] bool - True=Allow folder to be cached
-    ///                             (default)/False=this folder
+    /// @param cacheToDisc          [opt] bool - True=Folder will cache if
+    ///                             extended time(default)/False=this folder
     ///                             will never cache to disc.
     ///
     ///
@@ -339,10 +339,14 @@ namespace XBMCAddon
     /// |:--------:|:--------:|:--------:|:--------:|
     /// |  files   |  songs   | artists  | albums
     /// | movies   | tvshows  | episodes | musicvideos
+    /// | videos   | images   |  games   |
     ///
-    ///
+    /// @remark Use **videos** for all videos which do not apply to the 
+    /// more specific mentioned ones like "movies", "episodes" etc.
+    /// A good example is youtube.
     ///
     /// ------------------------------------------------------------------------
+    /// @python_v18 Added new **games** content
     ///
     /// **Example:**
     /// ~~~~~~~~~~~~~{.py}

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -102,7 +102,7 @@ CHTTPImageTransformationHandler::~CHTTPImageTransformationHandler()
   m_buffer = NULL;
 }
 
-bool CHTTPImageTransformationHandler::CanHandleRequest(const HTTPRequest &request)
+bool CHTTPImageTransformationHandler::CanHandleRequest(const HTTPRequest &request) const
 {
   if ((request.method != GET && request.method != HEAD) ||
     request.pathUrl.find(ImageBasePath) != 0 || request.pathUrl.size() <= ImageBasePath.size())

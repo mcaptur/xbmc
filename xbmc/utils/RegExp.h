@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,6 +21,8 @@
 
 #ifndef REGEXP_H
 #define REGEXP_H
+
+//! @todo - move to std::regex (after switching to gcc 4.9 or higher) and get rid of CRegExp
 
 #include <string>
 #include <vector>

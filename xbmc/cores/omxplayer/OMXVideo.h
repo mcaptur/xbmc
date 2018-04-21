@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2010-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,8 +19,6 @@
  *
  */
 
-#if defined(HAVE_OMXLIB)
-
 #include "OMXCore.h"
 #include "DVDStreamInfo.h"
 
@@ -28,9 +26,9 @@
 
 #include "OMXClock.h"
 
-#include "guilib/Geometry.h"
+#include "utils/Geometry.h"
 #include "DVDDemuxers/DVDDemux.h"
-#include "xbmc/settings/VideoSettings.h"
+#include "xbmc/cores/VideoSettings.h"
 #include "threads/CriticalSection.h"
 #include "xbmc/rendering/RenderSystem.h"
 #include "cores/VideoPlayer/VideoRenderers/RenderManager.h"
@@ -91,10 +89,10 @@ protected:
   COMXCoreComponent *m_omx_clock;
   OMXClock           *m_av_clock;
 
-  COMXCoreTunel     m_omx_tunnel_decoder;
-  COMXCoreTunel     m_omx_tunnel_clock;
-  COMXCoreTunel     m_omx_tunnel_sched;
-  COMXCoreTunel     m_omx_tunnel_image_fx;
+  COMXCoreTunnel    m_omx_tunnel_decoder;
+  COMXCoreTunnel    m_omx_tunnel_clock;
+  COMXCoreTunnel    m_omx_tunnel_sched;
+  COMXCoreTunnel    m_omx_tunnel_image_fx;
   bool              m_is_open;
   bool              m_setStartTime;
 
@@ -111,10 +109,9 @@ protected:
   bool              m_failed_eos;
   OMX_DISPLAYTRANSFORMTYPE m_transform;
   bool              m_settings_changed;
+  bool              m_isPi1;
   CRenderManager&   m_renderManager;
   CProcessInfo&     m_processInfo;
   static bool NaluFormatStartCodes(enum AVCodecID codec, uint8_t *in_extradata, int in_extrasize);
   CCriticalSection m_critSection;
 };
-
-#endif

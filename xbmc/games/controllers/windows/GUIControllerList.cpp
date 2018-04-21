@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2014-2016 Team Kodi
+ *      Copyright (C) 2014-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -30,16 +30,22 @@
 #include "addons/AddonManager.h"
 #include "dialogs/GUIDialogYesNo.h"
 #include "games/controllers/Controller.h"
+#include "games/controllers/ControllerIDs.h"
+#include "games/controllers/ControllerFeature.h"
+#include "games/controllers/ControllerLayout.h"
 #include "games/controllers/guicontrols/GUIControllerButton.h"
 #include "games/controllers/guicontrols/GUIGameController.h"
+#include "games/GameServices.h"
 #include "guilib/GUIButtonControl.h"
 #include "guilib/GUIControlGroupList.h"
 #include "guilib/GUIWindow.h"
 #include "guilib/WindowIDs.h"
-#include "input/joysticks/DefaultJoystick.h" // for DEFAULT_CONTROLLER_ID
 #include "messaging/ApplicationMessenger.h"
 #include "peripherals/Peripherals.h"
+#include "utils/StringUtils.h"
+#include "ServiceBroker.h"
 
+using namespace KODI;
 using namespace ADDON;
 using namespace GAME;
 
@@ -61,7 +67,7 @@ bool CGUIControllerList::Initialize(void)
   if (m_controllerButton)
     m_controllerButton->SetVisible(false);
 
-  CAddonMgr::GetInstance().Events().Subscribe(this, &CGUIControllerList::OnEvent);
+  CServiceBroker::GetAddonMgr().Events().Subscribe(this, &CGUIControllerList::OnEvent);
   Refresh();
 
   return m_controllerList != nullptr &&
@@ -70,7 +76,7 @@ bool CGUIControllerList::Initialize(void)
 
 void CGUIControllerList::Deinitialize(void)
 {
-  CAddonMgr::GetInstance().Events().Unsubscribe(this);
+  CServiceBroker::GetAddonMgr().Events().Unsubscribe(this);
 
   CleanupButtons();
 
@@ -92,7 +98,7 @@ bool CGUIControllerList::Refresh(void)
     {
       const ControllerPtr& controller = *it;
 
-      CGUIButtonControl* pButton = new CGUIControllerButton(*m_controllerButton, controller->Label(), buttonId++);
+      CGUIButtonControl* pButton = new CGUIControllerButton(*m_controllerButton, controller->Layout().Label(), buttonId++);
       m_controllerList->AddControl(pButton);
 
       // Just in case
@@ -138,15 +144,16 @@ void CGUIControllerList::ResetController(void)
     if (!CGUIDialogYesNo::ShowAndGetInput(35060, 35061))
       return;
 
-    PERIPHERALS::g_peripherals.ResetButtonMaps(strControllerId);
+    CServiceBroker::GetPeripherals().ResetButtonMaps(strControllerId);
   }
 }
 
 void CGUIControllerList::OnEvent(const ADDON::AddonEvent& event)
 {
-  if (typeid(event) == typeid(ADDON::AddonEvents::InstalledChanged))
+  if (typeid(event) == typeid(ADDON::AddonEvents::ReInstalled) ||
+      typeid(event) == typeid(ADDON::AddonEvents::UnInstalled))
   {
-    using namespace KODI::MESSAGING;
+    using namespace MESSAGING;
     CGUIMessage msg(GUI_MSG_REFRESH_LIST, m_guiWindow->GetID(), CONTROL_CONTROLLER_LIST);
     CApplicationMessenger::GetInstance().SendGUIMessage(msg);
   }
@@ -154,94 +161,54 @@ void CGUIControllerList::OnEvent(const ADDON::AddonEvent& event)
 
 bool CGUIControllerList::RefreshControllers(void)
 {
-  // Cache discovered add-ons between function calls
-  VECADDONS addonCache;
+  // Get current controllers
+  CGameServices& gameServices = CServiceBroker::GetGameServices();
+  ControllerVector newControllers = gameServices.GetControllers();
 
-  std::set<std::string> currentIds = GetControllerIDs();
-  std::set<std::string> newIds = GetNewControllerIDs(addonCache);
+  // Don't show an empty list in the GUI
+  auto HasButtonForFeature = [this](const CControllerFeature &feature)
+    {
+      return m_featureList->HasButton(feature.Type());
+    };
 
-  std::set<std::string> added;
-  std::set<std::string> removed;
+  auto HasButtonForController = [&](const ControllerPtr &controller)
+    {
+      const auto &features = controller->Features();
+      auto it = std::find_if(features.begin(), features.end(), HasButtonForFeature);
+      return it == features.end();
+    };
 
-  std::set_difference(newIds.begin(), newIds.end(), currentIds.begin(), currentIds.end(), std::inserter(added, added.end()));
-  std::set_difference(currentIds.begin(), currentIds.end(), newIds.begin(), newIds.end(), std::inserter(removed, removed.end()));
+  newControllers.erase(std::remove_if(newControllers.begin(), newControllers.end(), HasButtonForController), newControllers.end());
 
-  // Register new controllers
-  for (const std::string& addonId : added)
-    RegisterController(addonId, addonCache);
+  // Check for changes
+  std::set<std::string> oldControllerIds;
+  std::set<std::string> newControllerIds;
 
-  // Erase removed controllers
-  for (const std::string& addonId : removed)
-    UnregisterController(addonId);
+  auto GetControllerID = [](const ControllerPtr& controller)
+    {
+      return controller->ID();
+    };
 
-  // Sort add-ons, with default controller first
-  const bool bChanged = !added.empty() || !removed.empty();
+  std::transform(m_controllers.begin(), m_controllers.end(), std::inserter(oldControllerIds, oldControllerIds.begin()), GetControllerID);
+  std::transform(newControllers.begin(), newControllers.end(), std::inserter(newControllerIds, newControllerIds.begin()), GetControllerID);
+
+  const bool bChanged = (oldControllerIds != newControllerIds);
   if (bChanged)
   {
+    m_controllers = std::move(newControllers);
+
+    // Sort add-ons, with default controller first
     std::sort(m_controllers.begin(), m_controllers.end(),
       [](const ControllerPtr& i, const ControllerPtr& j)
       {
         if (i->ID() == DEFAULT_CONTROLLER_ID && j->ID() != DEFAULT_CONTROLLER_ID) return true;
         if (i->ID() != DEFAULT_CONTROLLER_ID && j->ID() == DEFAULT_CONTROLLER_ID) return false;
 
-        return i->Name() < j->Name();
+        return StringUtils::CompareNoCase(i->Layout().Label(), j->Layout().Label()) < 0;
       });
   }
 
   return bChanged;
-}
-
-std::set<std::string> CGUIControllerList::GetControllerIDs() const
-{
-  std::set<std::string> controllerIds;
-
-  std::transform(m_controllers.begin(), m_controllers.end(), std::inserter(controllerIds, controllerIds.end()),
-    [](const ControllerPtr& addon)
-    {
-      return addon->ID();
-    });
-
-  return controllerIds;
-}
-
-std::set<std::string> CGUIControllerList::GetNewControllerIDs(ADDON::VECADDONS& addonCache) const
-{
-  std::set<std::string> controllerIds;
-
-  CAddonMgr::GetInstance().GetAddons(addonCache, ADDON_GAME_CONTROLLER);
-
-  std::transform(addonCache.begin(), addonCache.end(), std::inserter(controllerIds, controllerIds.end()),
-    [](const AddonPtr& addon)
-    {
-      return addon->ID();
-    });
-
-  return controllerIds;
-}
-
-void CGUIControllerList::RegisterController(const std::string& addonId, const ADDON::VECADDONS& addonCache)
-{
-  auto it = std::find_if(addonCache.begin(), addonCache.end(),
-    [addonId](const AddonPtr& addon)
-    {
-      return addon->ID() == addonId;
-    });
-
-  if (it != addonCache.end())
-  {
-    ControllerPtr newController = std::dynamic_pointer_cast<CController>(*it);
-    if (newController && newController->LoadLayout())
-      m_controllers.push_back(newController);
-  }
-}
-
-void CGUIControllerList::UnregisterController(const std::string& controllerId)
-{
-  m_controllers.erase(std::remove_if(m_controllers.begin(), m_controllers.end(),
-    [controllerId](const ControllerPtr& controller)
-    {
-      return controller->ID() == controllerId;
-    }), m_controllers.end());
 }
 
 void CGUIControllerList::CleanupButtons(void)

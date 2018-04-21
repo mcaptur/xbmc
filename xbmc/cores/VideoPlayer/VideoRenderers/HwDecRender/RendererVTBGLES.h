@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2007-2015 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,10 +20,6 @@
 
 #pragma once
 
-#include "system.h"
-
-#if defined(TARGET_DARWIN_IOS)
-
 #include "cores/VideoPlayer/VideoRenderers/LinuxRendererGLES.h"
 #include <CoreVideo/CVOpenGLESTextureCache.h>
 
@@ -33,22 +29,23 @@ public:
   CRendererVTB();
   virtual ~CRendererVTB();
 
-  // Feature support
-  virtual void AddVideoPictureHW(DVDVideoPicture &picture, int index) override;
-  virtual void ReleaseBuffer(int idx) override;
-  virtual bool NeedBuffer(int idx) override;
-  virtual CRenderInfo GetRenderInfo() override;
+  static CBaseRenderer* Create(CVideoBuffer *buffer);
+  static bool Register();
+
+  // Player functions
+  void ReleaseBuffer(int idx) override;
+  bool NeedBuffer(int idx) override;
 
 protected:
   // hooks for hw dec renderer
-  virtual bool LoadShadersHook() override;
-  virtual int  GetImageHook(YV12Image *image, int source = AUTOSOURCE, bool readonly = false) override;
-  virtual void AfterRenderHook(int idx) override;
+  bool LoadShadersHook() override;
+  void AfterRenderHook(int idx) override;
+  EShaderFormat GetShaderFormat() override;
 
   // textures
-  virtual bool UploadTexture(int index) override;
-  virtual void DeleteTexture(int index) override;
-  virtual bool CreateTexture(int index) override;
+  bool UploadTexture(int index) override;
+  void DeleteTexture(int index) override;
+  bool CreateTexture(int index) override;
 
   CVOpenGLESTextureCacheRef m_textureCache;
   struct CRenderBuffer
@@ -59,6 +56,6 @@ protected:
     GLsync m_fence;
   };
   CRenderBuffer m_vtbBuffers[NUM_BUFFERS];
+  CVEAGLContext m_glContext;
 };
 
-#endif

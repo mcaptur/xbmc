@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2014 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -28,11 +28,9 @@
 
 using namespace XFILE;
 
-CResourceDirectory::CResourceDirectory()
-{ }
+CResourceDirectory::CResourceDirectory() = default;
 
-CResourceDirectory::~CResourceDirectory()
-{ }
+CResourceDirectory::~CResourceDirectory() = default;
 
 bool CResourceDirectory::GetDirectory(const CURL& url, CFileItemList &items)
 {

@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,8 +21,6 @@
 
 #include <string>
 #include <vector>
-
-#include "system.h"
 
 #include "settings/lib/ISettingCallback.h"
 
@@ -72,7 +70,7 @@ private:
 class CNetworkInterface
 {
 public:
-   virtual ~CNetworkInterface() {};
+   virtual ~CNetworkInterface() = default;
 
    virtual std::string& GetName(void) = 0;
 
@@ -149,12 +147,19 @@ public:
 
    // Return true if given name or ip address corresponds to localhost
    bool IsLocalHost(const std::string& hostname);
+
+   // Waits for the first network interface to become available
+   void WaitForNet();
 };
 
-#ifdef HAS_LINUX_NETWORK
-#include "linux/NetworkLinux.h"
-#else
-#include "windows/NetworkWin32.h"
+#if defined(TARGET_ANDROID)
+#include "platform/android/network/NetworkAndroid.h"
+#elif defined(HAS_LINUX_NETWORK)
+#include "platform/linux/network/NetworkLinux.h"
+#elif defined(HAS_WIN32_NETWORK)
+#include "platform/win32/network/NetworkWin32.h"
+#elif defined(HAS_WIN10_NETWORK)
+#include "platform/win10/network/NetworkWin10.h"
 #endif
 
 //creates, binds and listens a tcp socket on the desired port. Set bindLocal to
